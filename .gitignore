@@ -19,3 +19,6 @@ Package.resolved.orig
 *.local.xcconfig
 Configuration/Secrets.xcconfig
 .env
+
+# Claude Code local state (agent worktrees, settings)
+.claude/
