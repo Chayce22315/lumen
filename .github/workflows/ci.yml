@@ -12,9 +12,13 @@ concurrency:
 
 jobs:
   linux:
-    name: LumenKit (Linux)
+    name: LumenKit (Linux, Swift ${{ matrix.swift }})
     runs-on: ubuntu-latest
-    container: swift:6.2-noble
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ["6.1", "6.2"]
+    container: swift:${{ matrix.swift }}-noble
     steps:
       - uses: actions/checkout@v4
       - name: Install SQLite headers

@@ -5,14 +5,17 @@
 #   scripts/lumenkit-linux.sh test
 #   scripts/lumenkit-linux.sh test --filter LumenOrganizationTests
 #
-# Linux builds use a separate scratch path so they never clobber Xcode/macOS build products.
+# Linux builds use a separate scratch path per toolchain so they never clobber Xcode/macOS build
+# products. The default toolchain is Swift 6.1, the oldest compiler Lumen supports (Xcode 16.4);
+# set LUMEN_SWIFT=6.2 to check against a newer one.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE="${LUMEN_LINUX_IMAGE:-lumen-swift:6.2}"
+SWIFT_VERSION="${LUMEN_SWIFT:-6.1}"
+IMAGE="lumen-swift:${SWIFT_VERSION}"
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  docker build -t "$IMAGE" "$ROOT/Tools/LinuxToolchain"
+  docker build --build-arg "SWIFT_VERSION=${SWIFT_VERSION}" -t "$IMAGE" "$ROOT/Tools/LinuxToolchain"
 fi
 
 if [ "$#" -eq 0 ]; then
@@ -26,4 +29,4 @@ exec docker run --rm \
   -v "$ROOT:/workspace" \
   -w /workspace/Packages/LumenKit \
   "$IMAGE" \
-  swift "$subcommand" --scratch-path /workspace/.build-linux "$@"
+  swift "$subcommand" --scratch-path "/workspace/.build-linux/${SWIFT_VERSION}" "$@"

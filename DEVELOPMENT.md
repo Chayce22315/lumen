@@ -38,8 +38,14 @@ scripts/lumenkit-linux.sh test
 scripts/lumenkit-linux.sh test --filter LumenOrganizationTests
 ```
 
-The script builds `Tools/LinuxToolchain` (Swift 6.2 + SQLite headers) on first use and keeps
-Linux build products in `.build-linux/`, separate from Xcode's.
+The script builds `Tools/LinuxToolchain` (Swift + SQLite headers) on first use and keeps Linux
+build products in `.build-linux/<version>/`, separate from Xcode's. The default toolchain is
+**Swift 6.1**, the oldest compiler Lumen supports (it matches Xcode 16.4, and its concurrency
+checking is stricter in places than newer compilers). Check against a newer compiler with:
+
+```sh
+LUMEN_SWIFT=6.2 scripts/lumenkit-linux.sh test
+```
 
 ### LumenKit on macOS
 
@@ -62,7 +68,7 @@ xcodebuild -project Lumen.xcodeproj -scheme Lumen \
 
 `.github/workflows/ci.yml` runs on every push:
 
-- **linux** — `swift test` for LumenKit in the pinned Swift container.
+- **linux** — `swift test` for LumenKit in Swift 6.1 and 6.2 containers.
 - **apple** — `swift test` for LumenKit on macOS (exercises the Apple-only code paths such as the
   SDK SQLite module and Keychain), then an `xcodebuild` of the app for the iOS Simulator.
 
