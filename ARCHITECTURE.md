@@ -1,0 +1,168 @@
+# Lumen Architecture
+
+Lumen is a personal intelligence and productivity environment for iOS: tasks, projects,
+calendar, notes and documents, an AI assistant, visual automations, analytics and universal
+search in one application. This document describes how the system is put together and why.
+
+> Powerful beneath the surface, simple on the surface. The complexity belongs in the engineering.
+
+## 1. Shape of the system
+
+```
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ Xcode targets          Lumen (app)                LumenWidgets (extension)    │
+│                        entry point, App Intents   WidgetKit timelines         │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Packages/LumenInterface   (SwiftUI, Apple platforms only)                     │
+│   LumenDesignSystem   tokens → SwiftUI colors, type, motion, components        │
+│   LumenUI             feature screens, navigation, sheets, command palette    │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ Packages/LumenKit         (portable Swift, builds and tests on Linux)         │
+│   LumenPresentation   @Observable view models, formatting                     │
+│   LumenApplication    composition root, lifecycle, cross-engine integrations  │
+│   ─────────────────────────────────────────────────────────────────────────   │
+│   Engines: Organization · Knowledge · Intelligence · Automation · Analytics   │
+│            Search · Sync · Notifications · Plugins                            │
+│   ─────────────────────────────────────────────────────────────────────────   │
+│   LumenCore           events, settings, secrets, errors, configuration        │
+│   LumenPersistence    SQLite, migrations, change log                          │
+│   LumenFoundation     identifiers, time, recurrence, JSON, logging, retry     │
+│   LumenDesignTokens   colors, spacing, type scale, motion values, contrast    │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+Dependencies point strictly downward. Engines never import each other.
+
+## 2. Modules
+
+| Module | Responsibility | Depends on |
+| --- | --- | --- |
+| `LumenFoundation` | Typed `Identifier`, `EntityKind`/`EntityReference`, `TimeSource`, `CalendarDate`, `TimeOfDay`, `RecurrenceRule` + calculator, hybrid logical clock, `JSONValue`, logging, retry/backoff, text folding, `PresentableError` | — |
+| `LumenPersistence` | `Database` actor over SQLite, typed rows, migrations, savepoints, append-only change log stamped with hybrid timestamps | Foundation (+ `CSQLite` on Linux) |
+| `LumenCore` | `EventBus` and `DomainEvent`, `ActionContext`, `SettingsStore`, `SecretStore` (+ Keychain), `ErrorReporter`, `AppConfiguration`, feature flags | Foundation, Persistence |
+| `LumenDesignTokens` | Semantic color palette (dark-first, light variant), spacing, radii, type ramp, motion curves, WCAG contrast checks | — |
+| `LumenNotifications` | In-app inbox, per-category preferences, quiet hours, system delivery via `UNUserNotificationCenter` | Core |
+| `LumenOrganization` | Tasks, projects, calendar events, reminders, recurrence, priorities, dependencies, progress | Core |
+| `LumenKnowledge` | Notes, documents, collections, tags, wiki links and backlinks, version history, Markdown structure | Core |
+| `LumenSearch` | FTS5 global index, ranking, filters, search history, command palette actions | Core |
+| `LumenIntelligence` | Provider abstraction (Anthropic, OpenAI-compatible), streaming, tool calling loop, conversation persistence, memory, context budgeting, retries, token usage | Core |
+| `LumenAutomation` | Workflow graphs, triggers, conditions, templating, execution, scheduling, run history, recovery | Core |
+| `LumenAnalytics` | Local event collection, daily aggregates, productivity insights, comparisons, reports | Core |
+| `LumenSync` | Local-first sync over the change log: transport abstraction, three-way merge, conflict records, retry queue, history | Core |
+| `LumenPlugins` | Plugin manifests, capability declarations, permission grants, lifecycle | Core, extension protocols of the engines it hosts |
+| `LumenApplication` | Composition root, bootstrap and shutdown, built-in feature integrations (tools, actions, search sources, sync handlers), widget snapshot | all engines |
+| `LumenPresentation` | `@Observable` view models for every screen, formatting | Application |
+| `LumenDesignSystem` | SwiftUI rendering of the tokens, components, motion, haptics | DesignTokens |
+| `LumenUI` | Screens, navigation, sheets, command palette, onboarding | Presentation, DesignSystem |
+
+## 3. Decisions
+
+Each decision records the alternatives and why the default was chosen.
+
+### D1 — SQLite with an owned data layer instead of SwiftData
+
+*Alternatives:* SwiftData; Core Data; a third-party SQLite library.
+
+*Chosen:* a small SQLite layer (`LumenPersistence`, ~800 lines) over the system SQLite.
+
+*Why:* universal search needs FTS5 ranking, which SwiftData cannot express; local-first sync needs
+an append-only change log written in the same transaction as the data, which requires explicit
+transactions; migrations must be explicit and testable; and the engines must build and test on
+Linux, where SwiftData does not exist. A third-party library was rejected to keep the dependency
+list empty. *Cost:* hand-written SQL per repository, which is contained by the module layout rules.
+
+### D2 — Two packages: portable `LumenKit` and Apple-only `LumenInterface`
+
+*Why:* everything with business meaning — including view models — compiles without SwiftUI, so
+it is verified by `swift test` on any machine and on CI's Linux job. The interface package is
+only built by Xcode for iOS. The app and widget targets are thin shells over the packages.
+
+### D3 — Engines are independent; `LumenApplication` integrates them
+
+Each engine exposes extension protocols (`AssistantTool`, `AutomationAction`,
+`AutomationTriggerSource`, `SearchableSource`, `SyncEntityHandler`). The application layer
+adapts one engine to another (for example, an `AssistantTool` that creates a task through
+`TaskService`). Built-in features are registered the same way third-party plugins would be,
+which keeps the plugin architecture honest.
+
+### D4 — Events after commit, change records inside the transaction
+
+A write is `database.write { row + change record }` followed by `events.publish(...)`. The change
+log is therefore never out of step with the data (sync correctness), while event subscribers
+(search indexer, analytics, automation triggers, widget snapshot, view models) are eventually
+consistent and can always be rebuilt from storage.
+
+### D5 — Hybrid logical clocks and field-level three-way merge
+
+Each change carries a hybrid timestamp (physical time + logical counter + replica id). The sync
+engine keeps the last synchronized snapshot of every entity ("base") and merges remote changes
+field by field: a field changed on one side only takes that side; a field changed on both sides
+is a conflict resolved by the later hybrid timestamp and recorded for review. Deletions win over
+concurrent edits unless the edit is newer, in which case the entity is resurrected and the
+conflict recorded.
+
+### D6 — Settings are device-local; secrets are Keychain-only
+
+Settings describe this device (layout, model choice, notification preferences) and are not
+synchronized. Secrets are stored only through `SecretStore`, backed by the Keychain with
+`AfterFirstUnlockThisDeviceOnly`, and never logged, synchronized or exported.
+
+### D7 — Deployment target iOS 18
+
+iOS 18 provides the zoom navigation transition (`matchedTransitionSource` /
+`navigationTransition(.zoom)`) used for shared-element transitions, the `Tab` API, `Mutex` from
+the Synchronization module, and mature Observation. Supporting iOS 17 would require
+hand-built fallbacks for all of these.
+
+## 4. Data flow
+
+```
+View ──intent──▶ ViewModel ──▶ Service.method(context:)
+                                   │
+                                   ├─ validate (pure Logic)
+                                   ├─ database.write { repository.save(row); recordUpsert(snapshot) }
+                                   └─ events.publish(DomainEvent)
+                                                │
+              ┌─────────────────┬───────────────┼────────────────┬─────────────────┐
+              ▼                 ▼               ▼                ▼                 ▼
+       Search indexer     Analytics      Automation triggers   Widget snapshot   ViewModels refresh
+```
+
+## 5. Concurrency
+
+- `Database` is an actor; work runs in synchronous closures so a transaction can never suspend
+  half-way.
+- Services are `final class … : Sendable` holding only immutable references (database, event bus,
+  time source); they have no mutable state of their own, or protect it with `Mutex`.
+- Long-running engines with lifecycle (automation scheduler, sync coordinator, search indexer)
+  are actors.
+- View models are `@MainActor @Observable`.
+- Cancellation propagates through structured concurrency: closing the assistant sheet cancels the
+  streaming task, which cancels the HTTP request.
+
+## 6. Error handling
+
+Errors are typed per module. Anything that reaches the interface is converted to an
+`ErrorPresentation` (title, message, recovery suggestion, retryability). Unhandled errors go
+through `ErrorReporter`, which logs them, keeps them for the diagnostics screen and streams them to
+the interface as non-blocking banners.
+
+## 7. Security and privacy
+
+- No API keys in source, configuration files, the database or logs. Keys entered by the user go
+  straight to the Keychain.
+- Analytics are local only; nothing leaves the device unless the user configures a model provider
+  (requests go directly to that provider) or a sync transport.
+- Log messages never contain user content.
+- Plugins declare capabilities; each capability is granted explicitly by the user and enforced
+  by the permission-checked context the plugin receives.
+
+## 8. Testing strategy
+
+| Layer | How it is verified |
+| --- | --- |
+| Pure logic (recurrence, ranking, merge, parsing, insights, contrast) | Exhaustive unit tests |
+| Repositories and services | Integration tests on in-memory SQLite with a manual clock |
+| Providers and transports | Recorded/fake transports; SSE parsing tested byte-for-byte |
+| View models | Unit tests on Linux with fake services |
+| Interface | Built for the iOS Simulator on CI; previews use in-memory composition |
