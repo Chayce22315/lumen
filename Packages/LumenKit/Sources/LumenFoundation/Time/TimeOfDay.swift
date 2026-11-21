@@ -42,9 +42,17 @@ public struct TimeOfDay: Hashable, Sendable, Codable, Comparable {
     }
 }
 
-extension TimeOfDay: CustomStringConvertible {
+extension TimeOfDay: CustomStringConvertible, LosslessStringConvertible {
     /// `HH:MM`, 24-hour.
     public var description: String {
         (hour < 10 ? "0" : "") + String(hour) + ":" + (minute < 10 ? "0" : "") + String(minute)
+    }
+
+    /// Parses `HH:MM` (24-hour, two-digit minutes).
+    public init?(_ description: String) {
+        let parts = description.split(separator: ":", omittingEmptySubsequences: false)
+        guard parts.count == 2, (1...2).contains(parts[0].count), parts[1].count == 2,
+              let hour = Int(parts[0]), let minute = Int(parts[1]) else { return nil }
+        self.init(hour: hour, minute: minute)
     }
 }

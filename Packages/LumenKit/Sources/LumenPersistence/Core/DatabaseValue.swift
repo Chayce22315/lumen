@@ -161,6 +161,15 @@ extension CalendarDate: DatabaseValueConvertible {
 
 extension EntityKind: DatabaseValueConvertible {}
 
+extension TimeOfDay: DatabaseValueConvertible {
+    public var sqlValue: SQLValue { .text(description) }
+
+    public init?(sqlValue: SQLValue) {
+        guard case .text(let text) = sqlValue else { return nil }
+        self.init(text)
+    }
+}
+
 extension HybridTimestamp: DatabaseValueConvertible {
     public var sqlValue: SQLValue { .text(description) }
 
