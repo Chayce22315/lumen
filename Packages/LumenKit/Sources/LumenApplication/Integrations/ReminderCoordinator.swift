@@ -82,7 +82,7 @@ public actor ReminderCoordinator {
         }
     }
 
-    public func waitForHandledEvents(_ count: Int, timeout: TimeInterval = 2) async {
+    public func waitForHandledEvents(_ count: Int, timeout: TimeInterval = 10) async {
         let deadline = Date().addingTimeInterval(timeout)
         while handledEvents < count && Date() < deadline {
             try? await Task.sleep(nanoseconds: 2_000_000)

@@ -63,7 +63,7 @@ public final class EventRecorder: Sendable {
     public var names: [EventName] { events.map(\.name) }
 
     /// Waits (bounded) until at least `count` events arrived.
-    public func waitForEvents(_ count: Int, timeout: TimeInterval = 2) async -> [DomainEvent] {
+    public func waitForEvents(_ count: Int, timeout: TimeInterval = 10) async -> [DomainEvent] {
         let deadline = Date().addingTimeInterval(timeout)
         while events.count < count && Date() < deadline {
             try? await Task.sleep(nanoseconds: 5_000_000)

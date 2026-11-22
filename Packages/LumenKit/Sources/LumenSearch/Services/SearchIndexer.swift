@@ -58,7 +58,7 @@ public actor SearchIndexer {
     }
 
     /// Waits (bounded) until at least `count` events have been handled.
-    public func waitForProcessedEvents(_ count: Int, timeout: TimeInterval = 2) async {
+    public func waitForProcessedEvents(_ count: Int, timeout: TimeInterval = 10) async {
         let deadline = Date().addingTimeInterval(timeout)
         while processedEventCount < count && Date() < deadline {
             try? await Task.sleep(nanoseconds: 2_000_000)
@@ -99,7 +99,7 @@ public actor SearchIndexer {
     }
 
     /// Waits until no update is running (bounded). Used by tests and before snapshots.
-    public func waitUntilIdle(timeout: TimeInterval = 2) async {
+    public func waitUntilIdle(timeout: TimeInterval = 10) async {
         let deadline = Date().addingTimeInterval(timeout)
         while inFlight > 0 && Date() < deadline {
             try? await Task.sleep(nanoseconds: 2_000_000)

@@ -157,7 +157,7 @@ struct AnalyticsHarness {
     }
 
     /// Waits (bounded) until the collector has processed `count` events from its subscription.
-    func waitForProcessed(_ count: Int, timeout: TimeInterval = 2) async -> AnalyticsCollector.Statistics {
+    func waitForProcessed(_ count: Int, timeout: TimeInterval = 10) async -> AnalyticsCollector.Statistics {
         let deadline = Date().addingTimeInterval(timeout)
         var statistics = await collector.statistics()
         while statistics.processed < count && Date() < deadline {

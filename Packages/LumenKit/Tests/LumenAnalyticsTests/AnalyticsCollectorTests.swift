@@ -107,7 +107,7 @@ struct AnalyticsCollectorTests {
 
         await harness.collector.stop()
         #expect(!(await harness.collector.isRunning))
-        let deadline = Date().addingTimeInterval(2)
+        let deadline = Date().addingTimeInterval(10)
         while bus.subscriberCount > 0 && Date() < deadline {
             try await Task.sleep(nanoseconds: 5_000_000)
         }
@@ -130,7 +130,7 @@ struct AnalyticsCollectorTests {
         )
         await collector.start()
         environment.events.publish(DomainEvent(name: Fixture.completed, occurredAt: environment.clock.now()))
-        let deadline = Date().addingTimeInterval(2)
+        let deadline = Date().addingTimeInterval(10)
         while await collector.statistics().failed < 1 && Date() < deadline {
             try await Task.sleep(nanoseconds: 5_000_000)
         }

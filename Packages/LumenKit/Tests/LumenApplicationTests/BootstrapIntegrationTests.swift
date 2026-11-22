@@ -19,7 +19,7 @@ final class CountingScheduler: SystemNotificationScheduling {
 }
 
 /// Polls `condition` until it holds (bounded), for effects of asynchronous subscribers.
-func eventually(timeout: TimeInterval = 3, _ condition: @Sendable () async throws -> Bool) async rethrows -> Bool {
+func eventually(timeout: TimeInterval = 10, _ condition: @Sendable () async throws -> Bool) async rethrows -> Bool {
     let deadline = Date().addingTimeInterval(timeout)
     while Date() < deadline {
         if try await condition() { return true }

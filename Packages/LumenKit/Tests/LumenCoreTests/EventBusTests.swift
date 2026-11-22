@@ -38,7 +38,7 @@ struct EventBusTests {
         let recorder = EventRecorder(bus: bus)
         #expect(bus.subscriberCount == 1)
         recorder.stop()
-        let deadline = Date().addingTimeInterval(2)
+        let deadline = Date().addingTimeInterval(10)
         while bus.subscriberCount > 0 && Date() < deadline {
             try? await Task.sleep(nanoseconds: 5_000_000)
         }

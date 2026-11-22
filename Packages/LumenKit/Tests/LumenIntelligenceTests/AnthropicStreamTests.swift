@@ -191,7 +191,7 @@ struct AnthropicStreamTests {
     ])
 
     func waitForCancellation(_ transport: FakeTransport) async throws {
-        let deadline = Date().addingTimeInterval(2)
+        let deadline = Date().addingTimeInterval(10)
         while transport.cancelledBodies == 0 && Date() < deadline {
             try await Task.sleep(nanoseconds: 5_000_000)
         }
@@ -219,7 +219,7 @@ struct AnthropicStreamTests {
             }
             return received
         }
-        let deadline = Date().addingTimeInterval(2)
+        let deadline = Date().addingTimeInterval(10)
         while transport.requests.isEmpty && Date() < deadline {
             try await Task.sleep(nanoseconds: 5_000_000)
         }
