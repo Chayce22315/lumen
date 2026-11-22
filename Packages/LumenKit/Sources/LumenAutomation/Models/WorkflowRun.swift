@@ -102,6 +102,10 @@ public struct RunStep: Sendable, Hashable, Codable, Identifiable {
     public var startedAt: Date
     public var finishedAt: Date?
     public var output: JSONValue?
+    /// What the step worked with, resolved against the run context: an action's parameter values
+    /// after templates and references, a condition's operands, a delay's duration. `nil` for steps
+    /// recorded before inputs were kept and for the trigger (its payload is the run's trigger).
+    public var inputs: JSONValue?
     /// The action's own summary of what it did.
     public var message: String?
     public var errorMessage: String?
@@ -118,6 +122,7 @@ public struct RunStep: Sendable, Hashable, Codable, Identifiable {
         startedAt: Date,
         finishedAt: Date? = nil,
         output: JSONValue? = nil,
+        inputs: JSONValue? = nil,
         message: String? = nil,
         errorMessage: String? = nil,
         warnings: [String] = []
@@ -131,6 +136,7 @@ public struct RunStep: Sendable, Hashable, Codable, Identifiable {
         self.startedAt = startedAt
         self.finishedAt = finishedAt
         self.output = output
+        self.inputs = inputs
         self.message = message
         self.errorMessage = errorMessage
         self.warnings = warnings

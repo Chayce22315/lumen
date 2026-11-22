@@ -26,6 +26,7 @@ extension WorkflowExecutor {
         case .condition(let condition):
             let holds = ConditionEvaluator.evaluate(condition, in: state.context.value)
             var step = state.makeStep(run: run, node: node, at: timeSource.now())
+            step.inputs = Self.storable(Self.operands(of: condition, in: state.context.value), warnings: &step.warnings)
             step.status = .succeeded
             step.finishedAt = step.startedAt
             step.output = ["result": .bool(holds)]
@@ -51,6 +52,7 @@ extension WorkflowExecutor {
         let seconds = requested.isFinite ? max(0, requested) : 0
         let now = timeSource.now()
         var step = state.makeStep(run: run, node: node, at: now)
+        step.inputs = ["seconds": .number(seconds)]
 
         if seconds <= configuration.inlineDelayThreshold {
             try await journal.record(step, run: run)
@@ -95,6 +97,7 @@ extension WorkflowExecutor {
         let descriptor = action.descriptor
         let resolved = ParameterResolver.resolve(parameters, specs: descriptor.parameters, in: state.context.value)
         step.warnings = resolved.warnings.map(\.message)
+        step.inputs = Self.storable(.object(resolved.values), warnings: &step.warnings)
         guard resolved.missingRequired.isEmpty else {
             let names = resolved.missingRequired.map { "“\(descriptor.parameter(named: $0)?.title ?? $0)”" }
             let message = "No value for \(names.joined(separator: ", "))."
@@ -207,6 +210,28 @@ extension WorkflowExecutor {
             return presentable.presentation.message
         }
         return String(describing: error)
+    }
+
+    /// The value of every path a condition reads, keyed by path (`null` when missing), so the run
+    /// history shows what the branch decision was based on.
+    static func operands(of condition: Condition, in context: JSONValue) -> JSONValue {
+        var values: [String: JSONValue] = [:]
+        for path in condition.referencedPaths {
+            values[path] = ContextPath.resolve(path, in: context) ?? .null
+        }
+        return .object(values)
+    }
+
+    /// Inputs are kept for history only, so a value JSON can't represent is dropped with a warning
+    /// instead of failing the step (unlike outputs, which later steps depend on).
+    static func storable(_ inputs: JSONValue, warnings: inout [String]) -> JSONValue? {
+        do {
+            _ = try JSONText.encode(inputs)
+            return inputs
+        } catch {
+            warnings.append("The step's inputs couldn't be saved to the run history.")
+            return nil
+        }
     }
 
     /// Outputs are stored as JSON; a value JSON cannot represent (a non-finite number) fails the step.

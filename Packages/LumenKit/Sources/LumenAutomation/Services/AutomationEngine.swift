@@ -274,6 +274,29 @@ public actor AutomationEngine {
         return try await executor.start(workflow, trigger: trigger, input: input, causationDepth: context.causationDepth)
     }
 
+    /// Runs a workflow again with the trigger payload and input of an earlier run, using the
+    /// workflow's current definition. The payload gains `rerunOf` (the earlier run's identifier) so
+    /// steps can tell a replay apart. Like `run`, it works on disabled workflows and waits until the
+    /// new run finishes or parks on a long delay.
+    @discardableResult
+    public func rerun(_ runID: WorkflowRun.ID, context: ActionContext = .user) async throws -> WorkflowRun {
+        guard context.causationDepth < configuration.maxCausationDepth else {
+            throw AutomationError.causationLimitReached(depth: context.causationDepth)
+        }
+        let stored = try await database.read { db in try RunRepository.fetch(runID, in: db) }
+        guard let original = stored else { throw AutomationError.runNotFound(runID) }
+        guard let workflow = try await self.workflow(original.workflowID) else {
+            throw AutomationError.workflowNotFound(original.workflowID)
+        }
+        try requireValid(workflow)
+        var trigger = original.triggerPayload
+        if case .object(var payload) = trigger {
+            payload["rerunOf"] = .string(runID.uuidString)
+            trigger = .object(payload)
+        }
+        return try await executor.start(workflow, trigger: trigger, input: original.input, causationDepth: context.causationDepth)
+    }
+
     @discardableResult
     public func cancel(_ runID: WorkflowRun.ID) async throws -> Bool {
         try await executor.cancel(runID)

@@ -37,20 +37,22 @@ enum RunRepository {
         try db.execute(
             """
             INSERT INTO automation_run_steps
-                (id, run_id, sequence, node_id, status, attempt_count, started_at, finished_at, output, message, error_message, warnings)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, run_id, sequence, node_id, status, attempt_count, started_at, finished_at, output, inputs, message, error_message, warnings)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (id) DO UPDATE SET
                 status = excluded.status,
                 attempt_count = excluded.attempt_count,
                 finished_at = excluded.finished_at,
                 output = excluded.output,
+                inputs = excluded.inputs,
                 message = excluded.message,
                 error_message = excluded.error_message,
                 warnings = excluded.warnings
             """,
             [
                 step.id, step.runID, step.sequence, step.nodeID, step.status, step.attemptCount, step.startedAt, step.finishedAt,
-                try step.output.map { try JSONText.encode($0) }, step.message, step.errorMessage, try JSONText.encode(step.warnings),
+                try step.output.map { try JSONText.encode($0) }, try step.inputs.map { try JSONText.encode($0) },
+                step.message, step.errorMessage, try JSONText.encode(step.warnings),
             ]
         )
     }
