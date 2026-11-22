@@ -65,6 +65,8 @@ public final class DatabaseConnection {
     private func configure(isFile: Bool) throws {
         try executeScript("PRAGMA foreign_keys = ON;")
         try executeScript("PRAGMA busy_timeout = 5000;")
+        // Deleted content (erased notes, analytics, conversations) is overwritten, not left in free pages.
+        try executeScript("PRAGMA secure_delete = ON;")
         if isFile {
             // WAL lets the widget extension read while the app writes.
             _ = try query("PRAGMA journal_mode = WAL;")
