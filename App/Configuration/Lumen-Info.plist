@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.lumen.Lumen</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>lumen</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Lumen shows your calendar events next to your tasks. Events are read on this device and never uploaded.</string>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>AddTaskIntent</string>
+		<string>TodaySummaryIntent</string>
+		<string>AddNoteIntent</string>
+	</array>
+</dict>
+</plist>

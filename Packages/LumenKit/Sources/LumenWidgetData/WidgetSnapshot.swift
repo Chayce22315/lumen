@@ -105,3 +105,30 @@ public struct WidgetSnapshotStore: Sendable {
         return snapshot.version == WidgetSnapshot.currentVersion ? snapshot : nil
     }
 }
+
+/// Where the app and its widget extension share data.
+public enum SharedContainer {
+    /// The App Group both targets declare in their entitlements.
+    public static let appGroupIdentifier = "group.app.lumen"
+
+    /// The shared data directory, or `nil` when the App Group is not provisioned (for example an
+    /// unsigned simulator build); callers then fall back to the app's own container.
+    public static func directory() -> URL? {
+        #if canImport(Darwin)
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)?
+            .appendingPathComponent("Lumen", isDirectory: true)
+        #else
+        nil
+        #endif
+    }
+
+    /// The app's private data directory, used when the App Group is unavailable.
+    public static func fallbackDirectory() -> URL {
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base.appendingPathComponent("Lumen", isDirectory: true)
+    }
+
+    public static var snapshotFileName: String { "WidgetSnapshot.json" }
+}

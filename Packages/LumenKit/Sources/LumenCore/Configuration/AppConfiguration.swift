@@ -70,6 +70,6 @@ public struct AppConfiguration: Sendable {
 
     /// Where the app writes the snapshot the widget extension renders.
     public var widgetSnapshotURL: URL {
-        dataDirectory.appendingPathComponent("WidgetSnapshot.json")
+        dataDirectory.appendingPathComponent("WidgetSnapshot.json") // must match SharedContainer.snapshotFileName
     }
 }
