@@ -68,7 +68,7 @@ struct BootstrapIntegrationTests {
         let app = try await RunningApp.start()
         defer { try? FileManager.default.removeItem(at: app.directory) }
         let statuses = await app.services.plugins.host.statuses()
-        #expect(statuses.map(\.id) == ["app.lumen.core", "app.lumen.organization", "app.lumen.knowledge"])
+        #expect(statuses.map(\.id) == ["app.lumen.core", "app.lumen.organization", "app.lumen.knowledge", "app.lumen.intelligence", "app.lumen.automation"])
         #expect(statuses.allSatisfy { $0.state == .active })
         #expect(app.services.commands.registry.command(id: "create.task") != nil)
         #expect(app.services.commands.action(for: "navigate.home") != nil)

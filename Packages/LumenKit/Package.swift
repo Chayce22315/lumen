@@ -63,7 +63,7 @@ let package = Package(
         module("LumenWidgetData"),
         module("LumenApplication", dependencies: [
             "LumenCore", "LumenNotifications", "LumenOrganization", "LumenSearch", "LumenSync",
-            "LumenPlugins", "LumenAnalytics", "LumenWidgetData", "LumenKnowledge",
+            "LumenPlugins", "LumenAnalytics", "LumenWidgetData", "LumenKnowledge", "LumenIntelligence", "LumenAutomation",
         ]),
 
         module("LumenTestSupport", dependencies: ["LumenFoundation", "LumenPersistence", "LumenCore"]),

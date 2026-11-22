@@ -10,6 +10,8 @@ import LumenPlugins
 import LumenAnalytics
 import LumenWidgetData
 import LumenKnowledge
+import LumenIntelligence
+import LumenAutomation
 
 /// Builds the object graph and brings Lumen up.
 public enum LumenBootstrap {
@@ -29,6 +31,8 @@ public enum LumenBootstrap {
             SyncEngine.schema,
             PluginHost.schema,
             AnalyticsService.schema,
+            AssistantEngine.schema,
+            AutomationEngine.schema,
         ]
     }
 
@@ -89,11 +93,50 @@ public enum LumenBootstrap {
             tags: TagService(database: database, events: events, timeSource: timeSource, logger: logging.logger("tags"))
         )
 
+        // Automation
+        let automationCatalog = AutomationCatalog(includeBuiltIns: true)
+        automationCatalog.registerTriggers(from: BuiltInTriggerSource())
+        let automationEngine = AutomationEngine(
+            database: database, events: events, catalog: automationCatalog,
+            timeSource: timeSource, calendar: calendar, logger: logging.logger("automation")
+        )
+        let automation = AutomationServices(engine: automationEngine, catalog: automationCatalog)
+
         // Search
         let index = SearchIndex(database: database, timeSource: timeSource)
         let indexer = SearchIndexer(index: index, events: events, logger: logging.logger("search"))
         let commandCenter = CommandCenter(registry: CommandRegistry())
         let search = SearchServices(index: index, indexer: indexer, service: SearchService(index: index, commands: commandCenter.registry, database: database, timeSource: timeSource))
+
+        // Intelligence
+        let transport: any HTTPStreamingTransport
+        if let provided = platform.httpTransport {
+            transport = provided
+        } else if location == .inMemory {
+            transport = OfflineTransport()
+        } else {
+            transport = URLSessionStreamingTransport()
+        }
+        let providers = ProviderRegistry([
+            AnthropicProvider(transport: transport, secrets: platform.secrets, timeSource: timeSource, logger: logging.logger("provider.anthropic")),
+            OpenAICompatibleProvider(configuration: .openAI, transport: transport, secrets: platform.secrets, timeSource: timeSource, logger: logging.logger("provider.openai")),
+        ])
+        let models = ModelCatalog(registry: providers, timeSource: timeSource, logger: logging.logger("models"))
+        let tools = ToolRegistry()
+        let memory = MemoryStore(database: database, events: events, settings: settings, timeSource: timeSource, logger: logging.logger("memory"))
+        let approvals = ToolApprovalBroker()
+        let assistant = AssistantEngine(
+            database: database, events: events, settings: settings, secrets: platform.secrets,
+            providers: providers, catalog: models, tools: tools, memory: memory,
+            approvalHandler: approvals,
+            contextProvider: WorkspaceContextProvider(agenda: agenda, projects: projects),
+            timeSource: timeSource, calendar: calendar, logger: logging.logger("assistant")
+        )
+        let conversations = ConversationService(database: database, events: events, timeSource: timeSource, logger: logging.logger("conversations"))
+        let intelligence = IntelligenceServices(
+            assistant: assistant, conversations: conversations, memory: memory, providers: providers, models: models,
+            tools: tools, usage: UsageTracker(database: database, calendar: calendar, logger: logging.logger("usage")), approvals: approvals
+        )
 
         // Analytics
         let signals = ProductivitySignals(
@@ -112,7 +155,7 @@ public enum LumenBootstrap {
         let sync = SyncEngine(
             database: database,
             transport: platform.syncTransport,
-            handlers: OrganizationIntegration.syncHandlers() + KnowledgeIntegration.syncHandlers(),
+            handlers: OrganizationIntegration.syncHandlers() + KnowledgeIntegration.syncHandlers() + IntelligenceIntegration.syncHandlers(),
             events: events,
             timeSource: timeSource,
             logger: logging.logger("sync")
@@ -132,6 +175,26 @@ public enum LumenBootstrap {
         try await host.register(CoreFeature(), isBuiltIn: true)
         try await host.register(OrganizationFeature(tasks: tasks, projects: projects, calendars: calendars), isBuiltIn: true)
         try await host.register(KnowledgeFeature(notes: notes, collections: collections, documents: documents, timeSource: timeSource, calendar: calendar), isBuiltIn: true)
+        let assistantTools: [any AssistantTool] = [
+            SearchLumenTool(search: search.service),
+            ListTasksTool(tasks: tasks),
+            CreateTaskTool(tasks: tasks, projects: projects),
+            CompleteTaskTool(tasks: tasks),
+            AgendaTool(agenda: agenda),
+            CreateNoteTool(notes: notes),
+            ReadNoteTool(notes: notes),
+            ListWorkflowsTool(automation: automationEngine),
+            RunWorkflowTool(automation: automationEngine),
+        ]
+        try await host.register(IntelligenceFeature(tools: assistantTools, conversations: conversations), isBuiltIn: true)
+        let automationActions: [any AutomationAction] = [
+            CreateTaskAction(tasks: tasks, projects: projects),
+            CompleteTaskAction(tasks: tasks),
+            CreateNoteAction(notes: notes),
+            AppendToNoteAction(notes: notes),
+            SendNotificationAction(notifications: notifications),
+        ]
+        try await host.register(AutomationFeature(actions: automationActions, automation: automationEngine), isBuiltIn: true)
         for plugin in platform.plugins {
             do {
                 try await host.register(plugin, isBuiltIn: false)
@@ -153,7 +216,8 @@ public enum LumenBootstrap {
         let services = LumenServices(
             configuration: configuration, timeSource: timeSource, calendar: calendar, logging: logging, recentLogs: recentLogs,
             database: database, events: events, settings: settings, secrets: platform.secrets, errors: errors,
-            notifications: notifications, organization: organization, knowledge: knowledge, search: search, analytics: analytics, sync: sync,
+            notifications: notifications, organization: organization, knowledge: knowledge,
+            intelligence: intelligence, automation: automation, search: search, analytics: analytics, sync: sync,
             plugins: PluginServices(host: host, extensions: extensions), commands: commandCenter, home: home, widgets: widgets
         )
         logger.info("Services created", metadata: ["flavor": configuration.flavor.rawValue])

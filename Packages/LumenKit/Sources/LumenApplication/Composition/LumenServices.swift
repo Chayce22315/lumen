@@ -9,6 +9,8 @@ import LumenSync
 import LumenPlugins
 import LumenAnalytics
 import LumenKnowledge
+import LumenIntelligence
+import LumenAutomation
 
 public struct OrganizationServices: Sendable {
     public let tasks: TaskService
@@ -23,6 +25,23 @@ public struct KnowledgeServices: Sendable {
     public let collections: CollectionService
     public let documents: DocumentService
     public let tags: TagService
+}
+
+public struct IntelligenceServices: Sendable {
+    public let assistant: AssistantEngine
+    public let conversations: ConversationService
+    public let memory: MemoryStore
+    public let providers: ProviderRegistry
+    public let models: ModelCatalog
+    public let tools: ToolRegistry
+    public let usage: UsageTracker
+    /// Where mutating assistant tools wait for the user's go-ahead.
+    public let approvals: ToolApprovalBroker
+}
+
+public struct AutomationServices: Sendable {
+    public let engine: AutomationEngine
+    public let catalog: AutomationCatalog
 }
 
 public struct SearchServices: Sendable {
@@ -60,6 +79,8 @@ public final class LumenServices: Sendable {
     public let notifications: NotificationService
     public let organization: OrganizationServices
     public let knowledge: KnowledgeServices
+    public let intelligence: IntelligenceServices
+    public let automation: AutomationServices
     public let search: SearchServices
     public let analytics: AnalyticsServices
     public let sync: SyncEngine
@@ -82,6 +103,8 @@ public final class LumenServices: Sendable {
         notifications: NotificationService,
         organization: OrganizationServices,
         knowledge: KnowledgeServices,
+        intelligence: IntelligenceServices,
+        automation: AutomationServices,
         search: SearchServices,
         analytics: AnalyticsServices,
         sync: SyncEngine,
@@ -103,6 +126,8 @@ public final class LumenServices: Sendable {
         self.notifications = notifications
         self.organization = organization
         self.knowledge = knowledge
+        self.intelligence = intelligence
+        self.automation = automation
         self.search = search
         self.analytics = analytics
         self.sync = sync
@@ -110,6 +135,11 @@ public final class LumenServices: Sendable {
         self.commands = commands
         self.home = home
         self.widgets = widgets
+    }
+
+    /// Whether the assistant has a model and credentials to answer with.
+    public func isAssistantConfigured() async -> Bool {
+        await IntelligenceIntegration.isConfigured(settings: settings, providers: intelligence.providers, secrets: secrets)
     }
 
     /// Today in the user's calendar.

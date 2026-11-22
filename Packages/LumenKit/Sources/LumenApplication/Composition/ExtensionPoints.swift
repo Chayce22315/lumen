@@ -1,6 +1,8 @@
 import Foundation
 import LumenPlugins
 import LumenSearch
+import LumenIntelligence
+import LumenAutomation
 
 /// What running a command does.
 public enum CommandAction: Sendable {
@@ -35,4 +37,6 @@ public struct LumenCommand: Sendable {
 public enum LumenExtensionPoints {
     public static let commands = ExtensionPoint<LumenCommand>("lumen.commands", requires: .contributeCommands)
     public static let searchSources = ExtensionPoint<any SearchableSource>("lumen.search.sources", requires: .contributeSearchResults)
+    public static let assistantTools = ExtensionPoint<any AssistantTool>("lumen.assistant.tools", requires: .contributeAssistantTools)
+    public static let automationActions = ExtensionPoint<any AutomationAction>("lumen.automation.actions", requires: .contributeAutomationActions)
 }

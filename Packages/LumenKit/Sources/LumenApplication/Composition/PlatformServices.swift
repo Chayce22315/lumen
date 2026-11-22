@@ -6,6 +6,7 @@ import LumenOrganization
 import LumenSync
 import LumenPlugins
 import LumenKnowledge
+import LumenIntelligence
 
 /// Everything that differs between the real app, previews and tests. The app target fills this
 /// with Keychain, UserNotifications, EventKit and WidgetKit adapters; previews and tests use
@@ -18,6 +19,9 @@ public struct PlatformServices: Sendable {
     /// Where imported document files live. `nil` uses the configuration's documents directory
     /// (in memory for tests and previews).
     public var documentStorage: (any DocumentStorage)?
+    /// HTTP for model providers. `nil` uses URLSession for real builds and no network for tests
+    /// and previews (the assistant then reports that it isn't set up).
+    public var httpTransport: (any HTTPStreamingTransport)?
     public var additionalLogSinks: [any LogSink]
     /// Third-party plugins bundled with or installed into this build.
     public var plugins: [any LumenPlugin]
@@ -30,6 +34,7 @@ public struct PlatformServices: Sendable {
         externalCalendar: (any ExternalCalendarSource)? = nil,
         syncTransport: (any SyncTransport)? = nil,
         documentStorage: (any DocumentStorage)? = nil,
+        httpTransport: (any HTTPStreamingTransport)? = nil,
         additionalLogSinks: [any LogSink] = [],
         plugins: [any LumenPlugin] = [],
         reloadWidgets: @escaping @Sendable () -> Void = {}
@@ -39,6 +44,7 @@ public struct PlatformServices: Sendable {
         self.externalCalendar = externalCalendar
         self.syncTransport = syncTransport
         self.documentStorage = documentStorage
+        self.httpTransport = httpTransport
         self.additionalLogSinks = additionalLogSinks
         self.plugins = plugins
         self.reloadWidgets = reloadWidgets
@@ -58,4 +64,13 @@ public struct InertNotificationScheduler: SystemNotificationScheduling {
     public func requestAuthorization() async throws -> Bool { false }
     public func schedule(_ request: SystemNotificationRequest) async throws {}
     public func cancel(identifiers: [String]) async {}
+}
+
+/// A transport for environments that must never reach the network (tests, previews).
+public struct OfflineTransport: HTTPStreamingTransport {
+    public init() {}
+
+    public func send(_ request: HTTPRequest) async throws -> HTTPStreamResponse {
+        throw ProviderError.network("Networking is disabled in this environment.")
+    }
 }
