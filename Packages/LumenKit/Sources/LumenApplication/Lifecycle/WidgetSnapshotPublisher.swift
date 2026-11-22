@@ -8,6 +8,8 @@ import LumenWidgetData
 /// Writes the widget snapshot after relevant changes (debounced) and asks WidgetKit to reload.
 public actor WidgetSnapshotPublisher {
     private let store: WidgetSnapshotStore
+    /// What the user did on widgets, next to the snapshot; applied by `LumenRuntime.applyWidgetActions()`.
+    public nonisolated let actionQueue: WidgetActionQueue
     private let tasks: TaskService
     private let projects: ProjectService
     private let agenda: AgendaService
@@ -35,6 +37,7 @@ public actor WidgetSnapshotPublisher {
         debounce: TimeInterval = 0.75
     ) {
         self.store = store
+        self.actionQueue = WidgetActionQueue(directory: store.url.deletingLastPathComponent())
         self.tasks = tasks
         self.projects = projects
         self.agenda = agenda
@@ -48,7 +51,7 @@ public actor WidgetSnapshotPublisher {
 
     public func start() {
         guard consumer == nil else { return }
-        let stream = events.events(matching: EventFilter(modules: ["organization", "sync"], entityKinds: [.task, .project, .calendarEvent]))
+        let stream = events.events(matching: EventFilter(modules: ["organization", "sync"], entityKinds: [.task, .project, .calendarEvent, .systemCalendarEvent]))
         consumer = Task { [weak self] in
             for await _ in stream {
                 await self?.scheduleRefresh()
@@ -105,7 +108,8 @@ public actor WidgetSnapshotPublisher {
                     title: task.title,
                     dueTime: task.dueTime?.description,
                     isOverdue: task.isOverdue(today: today),
-                    priority: task.priority.rawValue
+                    priority: task.priority.rawValue,
+                    isDueToday: task.dueDate == today
                 )
             },
             nextEvent: overview.nextEvent.map { WidgetSnapshot.EventLine(title: $0.title, start: $0.start, end: $0.end, location: $0.location) },

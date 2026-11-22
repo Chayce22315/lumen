@@ -73,13 +73,15 @@ public actor LumenRuntime {
         }
 
         await services.organization.reminders.refreshEventWindow()
+        await applyWidgetActions()
         await services.widgets.refresh()
         logger.info("Runtime started")
     }
 
-    /// Foreground: catch up on time-based work.
+    /// Foreground: catch up on widget actions and time-based work.
     public func didBecomeActive() async {
         guard started else { return }
+        await applyWidgetActions()
         await tickAutomations()
         await services.organization.reminders.refreshEventWindow()
         _ = await services.sync.synchronizeIfDue()
