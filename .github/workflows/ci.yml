@@ -49,5 +49,13 @@ jobs:
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             CODE_SIGNING_ALLOWED=NO \
-            build | tee build/xcodebuild.log | grep -E "error:|warning: |BUILD (SUCCEEDED|FAILED)" || true
-          grep -q "BUILD SUCCEEDED" build/xcodebuild.log
+            build > build/xcodebuild.log 2>&1 || true
+          if ! grep -q "BUILD SUCCEEDED" build/xcodebuild.log; then
+            echo "::group::Compiler errors"
+            grep -E "error:" build/xcodebuild.log | sort -u | head -200
+            echo "::endgroup::"
+            tail -40 build/xcodebuild.log
+            exit 1
+          fi
+          grep -E "warning: " build/xcodebuild.log | grep -v "/DerivedData/" | sort -u | head -100 || true
+          echo "BUILD SUCCEEDED"

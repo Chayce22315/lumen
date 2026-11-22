@@ -109,9 +109,10 @@ struct AssistantAndAutomationIntegrationTests {
         #expect(note.body == "Finished \(task.id.uuidString)")
         let runs = try await services.automation.engine.runs(workflowID: workflow.id, limit: 5)
         #expect(runs.first?.status == .succeeded)
-        // The note was created by the automation, not the user.
-        let noteEvents = try await services.analytics.service.recentEvents(limit: 20, names: [KnowledgeEvents.noteCreated])
-        #expect(noteEvents.first?.actor == .automation)
+        // The note was created by the automation, not the user (analytics records asynchronously).
+        #expect(try await eventually {
+            try await services.analytics.service.recentEvents(limit: 20, names: [KnowledgeEvents.noteCreated]).first?.actor == .automation
+        })
         await app.runtime.shutdown()
     }
 }

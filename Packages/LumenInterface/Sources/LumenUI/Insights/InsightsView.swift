@@ -1,4 +1,5 @@
 import SwiftUI
+import LumenCore
 import Charts
 import LumenFoundation
 import LumenDesignSystem
