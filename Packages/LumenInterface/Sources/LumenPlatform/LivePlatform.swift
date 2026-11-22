@@ -78,7 +78,7 @@ public enum LivePlatform {
         switch mode {
         case .standard:
             let configuration = configuration()
-            return try await LumenBootstrap.make(configuration: configuration, platform: services(for: configuration))
+            return try await LumenBootstrap.make(configuration: configuration, platform: services(for: configuration).addingDocumentTextExtractors(documentTextExtractors))
         case .uiTesting:
             let configuration = try uiTestingConfiguration()
             let platform = PlatformServices(

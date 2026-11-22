@@ -14,13 +14,24 @@ public final class DocumentService: Sendable {
 
     private let database: Database
     private let storage: any DocumentStorage
+    private let extractors: [any DocumentTextExtractor]
     private let events: EventBus
     private let timeSource: any TimeSource
     private let logger: Logger
 
-    public init(database: Database, storage: any DocumentStorage, events: EventBus, timeSource: any TimeSource, logger: Logger) {
+    /// - Parameter extractors: platform text extractors for formats beyond UTF-8 text (PDF);
+    ///   the first one that accepts a document's type is used.
+    public init(
+        database: Database,
+        storage: any DocumentStorage,
+        extractors: [any DocumentTextExtractor] = [],
+        events: EventBus,
+        timeSource: any TimeSource,
+        logger: Logger
+    ) {
         self.database = database
         self.storage = storage
+        self.extractors = extractors
         self.events = events
         self.timeSource = timeSource
         self.logger = logger
@@ -59,6 +70,7 @@ public final class DocumentService: Sendable {
             return existing
         }
 
+        let extractedText = await extractText(from: data, contentType: contentType)
         try await storage.write(data, key: key)
         let now = timeSource.now()
         let document = DocumentItem(
@@ -70,7 +82,7 @@ public final class DocumentService: Sendable {
             storageKey: key,
             collectionID: collectionID,
             tags: TagNormalizer.normalize(tags),
-            extractedText: DocumentContentType.extractText(from: data, contentType: contentType, limit: Self.maximumExtractedCharacters),
+            extractedText: extractedText,
             createdAt: now,
             updatedAt: now
         )
@@ -194,6 +206,14 @@ public final class DocumentService: Sendable {
         storage.url(for: try await requireDocument(id).storageKey)
     }
 
+    /// The file URL only when the bytes are present on this device (a document synced from
+    /// another device may not have its file yet), so a preview never opens a missing file.
+    public func availableFileURL(for id: DocumentItem.ID) async throws -> URL? {
+        let document = try await requireDocument(id)
+        guard await storage.exists(key: document.storageKey) else { return nil }
+        return storage.url(for: document.storageKey)
+    }
+
     // MARK: - Internals
 
     private struct ImportOutcome: Sendable {
@@ -239,6 +259,26 @@ public final class DocumentService: Sendable {
         guard outcome.changed else { return outcome.document }
         events.publish(context.event(KnowledgeEvents.documentUpdated, entity: outcome.document.reference, attributes: Self.attributes(of: outcome.document), at: now))
         return outcome.document
+    }
+
+    /// Text for the search index and the assistant: UTF-8 formats are decoded directly, other
+    /// formats go to the first platform extractor that accepts them. A failed extraction is
+    /// logged and the document is imported without text; failing the import would lose the file
+    /// without recovering the text.
+    private func extractText(from data: Data, contentType: String) async -> String? {
+        let limit = Self.maximumExtractedCharacters
+        if let text = DocumentContentType.extractText(from: data, contentType: contentType, limit: limit) {
+            return text
+        }
+        guard let extractor = extractors.first(where: { $0.canExtract(contentType: contentType) }) else { return nil }
+        do {
+            return try await extractor.extractText(from: data, contentType: contentType, limit: limit)
+        } catch {
+            logger.notice("Document text could not be extracted", metadata: [
+                "contentType": contentType, "error": String(describing: type(of: error)),
+            ])
+            return nil
+        }
     }
 
     /// Re-imported bytes repair a document whose file went missing (e.g. restored from a backup

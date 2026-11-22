@@ -5,7 +5,7 @@ import LumenCore
 
 extension AssistantEngine {
     /// One user turn, from the user message to the final assistant message.
-    func runTurn(text: String, conversationID: Conversation.ID, turnID: UUID, updates: Updates) async {
+    func runTurn(text: String, attachments references: [EntityReference], conversationID: Conversation.ID, turnID: UUID, updates: Updates) async {
         defer {
             if activeTurns[conversationID]?.id == turnID {
                 activeTurns[conversationID] = nil
@@ -20,22 +20,29 @@ extension AssistantEngine {
         let setup: TurnSetup
         var history: [ChatMessage]
         var stamp: Date
+        let attachmentCount: Int
         do {
             let (prepared, conversation) = try await prepare(conversationID: conversationID, turnID: turnID)
             setup = prepared
-            let userMessage = try await persistUserMessage(prompt, in: conversation, setup: setup)
+            let attached = try await resolveAttachments(references, historyBudget: setup.historyBudget)
+            attachmentCount = attached.count
+            let userMessage = try await persistUserMessage(prompt, attachments: attached.map(\.attachment), in: conversation, setup: setup)
             stamp = userMessage.createdAt
             let stored = try await database.read { db in try MessageRepository.messages(in: conversationID, db: db) }
+            let known = Dictionary(attached.map { ($0.attachment.reference, $0.content) }, uniquingKeysWith: { first, _ in first })
+            let expanded = await expandingAttachments(in: stored, known: known)
             // Earlier turns are fitted once; the tool loop below only appends, so the request
             // prefix stays identical across rounds (which keeps replayed reasoning valid).
-            history = contextBuilder.fit(stored, budget: setup.historyBudget).messages
+            history = contextBuilder.fit(expanded, budget: setup.historyBudget).messages
         } catch {
             logger.notice("Assistant turn not started", metadata: ["reason": Self.errorKind(error)])
             updates.yield(.failed(ErrorPresentation.from(error)))
             return
         }
 
-        logger.info("Assistant turn started", metadata: ["provider": setup.selection.providerID.rawValue, "model": setup.selection.modelID])
+        logger.info("Assistant turn started", metadata: [
+            "provider": setup.selection.providerID.rawValue, "model": setup.selection.modelID, "attachments": String(attachmentCount),
+        ])
         let executor = ToolExecutor(timeout: configuration.toolTimeout, logger: logger)
         var turnMessages: [ChatMessage] = []
         var roundsExecuted = 0
@@ -244,7 +251,7 @@ extension AssistantEngine {
     // MARK: - Persistence
 
     /// Stores the first user message of the turn, bumping the conversation and naming it when new.
-    private func persistUserMessage(_ prompt: String, in conversation: Conversation, setup: TurnSetup) async throws -> ChatMessage {
+    private func persistUserMessage(_ prompt: String, attachments: [MessageAttachment], in conversation: Conversation, setup: TurnSetup) async throws -> ChatMessage {
         let conversationID = conversation.id
         let now = timeSource.now()
         let (message, autoTitled) = try await database.write { db -> (ChatMessage, Bool) in
@@ -253,7 +260,7 @@ extension AssistantEngine {
             }
             let latest = try MessageRepository.latestCreatedAt(in: conversationID, db: db)
             let createdAt = latest.map { max(now, $0.addingTimeInterval(0.001)) } ?? now
-            let message = ChatMessage(conversationID: conversationID, role: .user, blocks: [.text(prompt)], createdAt: createdAt)
+            let message = ChatMessage(conversationID: conversationID, role: .user, blocks: [.text(prompt)], createdAt: createdAt, attachments: attachments)
             try MessageRepository.save(message, in: db)
             let autoTitled = latest == nil && current.title.isEmpty
             if autoTitled {

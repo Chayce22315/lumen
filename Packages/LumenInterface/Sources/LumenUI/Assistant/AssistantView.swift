@@ -5,6 +5,7 @@ import LumenDesignSystem
 import LumenPresentation
 import LumenApplication
 import LumenIntelligence
+import LumenSearch
 
 /// Conversations with the assistant.
 struct AssistantView: View {
@@ -24,6 +25,7 @@ struct AssistantView: View {
             .scrollContentBackground(.hidden)
             .lumenScreenBackground()
             .navigationTitle("Assistant")
+            .searchable(text: $conversations.searchQuery, prompt: "Search conversations")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { Task { await startConversation() } } label: { Image(systemName: "square.and.pencil") }
@@ -38,7 +40,10 @@ struct AssistantView: View {
 
     @ViewBuilder
     private var content: some View {
-        if !isConfigured {
+        if let results = conversations.searchResults {
+            // Searching past conversations works without a configured model.
+            searchResults(results)
+        } else if !isConfigured {
             StateMessage(
                 "Set up the assistant",
                 message: "Add an API key for Anthropic or OpenAI and choose a model. Keys are stored in the Keychain on this device.",
@@ -78,6 +83,30 @@ struct AssistantView: View {
         }
     }
 
+    @ViewBuilder
+    private func searchResults(_ results: [ConversationSearchRow]) -> some View {
+        if results.isEmpty {
+            ContentUnavailableView.search(text: conversations.searchQuery)
+        } else {
+            List(results) { row in
+                NavigationLink(value: AppDestination.entity(row.conversation.reference)) {
+                    VStack(alignment: .leading, spacing: LumenSpace.xxs) {
+                        HighlightedText(text: row.conversation.displayTitle, highlights: row.titleHighlights)
+                            .lineLimit(1)
+                        if let snippet = row.snippet {
+                            HighlightedText(text: snippet.text, highlights: snippet.highlights, role: .footnote, color: LumenColor.textSecondary)
+                                .lineLimit(2)
+                        }
+                        if row.conversation.isArchived {
+                            Text("Archived").lumenText(.caption).foregroundStyle(LumenColor.textTertiary)
+                        }
+                    }
+                }
+                .listRowBackground(LumenColor.surface)
+            }
+        }
+    }
+
     private func startConversation() async {
         if let conversation = await conversations.create() {
             model.router.push(.entity(conversation.reference))
@@ -90,6 +119,7 @@ struct ChatView: View {
     let services: LumenServices
     let model: AppModel
     @State private var chat: ChatViewModel
+    @State private var isPickingAttachments = false
     @FocusState private var composerFocused: Bool
 
     init(conversationID: Conversation.ID, services: LumenServices, model: AppModel) {
@@ -126,7 +156,20 @@ struct ChatView: View {
         .lumenScreenBackground()
         .navigationTitle("Conversation")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if chat.canChooseModel {
+                ToolbarItem(placement: .topBarTrailing) { modelMenu }
+            }
+        }
         .task { await chat.start() }
+        .sheet(isPresented: $isPickingAttachments) {
+            NavigationStack {
+                AttachmentPickerView(services: services, alreadyAttached: Set(chat.attachments.map(\.reference))) { candidate in
+                    chat.attach(candidate)
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
         .sheet(item: Binding(get: { chat.pendingApproval }, set: { if $0 == nil { Task { await chat.answerApproval(false) } } })) { request in
             ApprovalSheet(request: request) { approved in
                 Task { await chat.answerApproval(approved) }
@@ -135,8 +178,72 @@ struct ChatView: View {
         }
     }
 
+    /// Picks this conversation's model among those that can answer; "Default" follows Settings.
+    private var modelMenu: some View {
+        Menu {
+            Button {
+                Task { await chat.chooseModel(nil) }
+            } label: {
+                let title = chat.defaultModelName.map { "Default (\($0))" } ?? "Default"
+                if chat.followsDefaultModel {
+                    Label(title, systemImage: "checkmark")
+                } else {
+                    Text(title)
+                }
+            }
+            ForEach(chat.modelChoices.providers) { provider in
+                Section(provider.displayName) {
+                    ForEach(provider.models) { descriptor in
+                        Button {
+                            Task { await chat.chooseModel(descriptor.selection) }
+                        } label: {
+                            if !chat.followsDefaultModel && chat.activeSelection == descriptor.selection {
+                                Label(descriptor.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(descriptor.displayName)
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: LumenSpace.xxs) {
+                Text(chat.activeModelName ?? "Model").lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
+            }
+            .lumenText(.footnote)
+        }
+        .accessibilityLabel("Model")
+        .accessibilityValue(chat.activeModelName ?? "Not chosen")
+    }
+
     private var composer: some View {
+        VStack(alignment: .leading, spacing: LumenSpace.s) {
+            if !chat.attachments.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: LumenSpace.s) {
+                        ForEach(chat.attachments) { candidate in
+                            AttachmentChip(candidate: candidate) { chat.removeAttachment(candidate.reference) }
+                        }
+                    }
+                }
+            }
+            composerRow
+        }
+        .padding(.horizontal, LumenSpace.screen)
+        .padding(.vertical, LumenSpace.s)
+        .background(.bar)
+        .animation(.lumenSnappy, value: chat.attachments.map(\.reference))
+    }
+
+    private var composerRow: some View {
         HStack(alignment: .bottom, spacing: LumenSpace.s) {
+            Button { isPickingAttachments = true } label: {
+                Image(systemName: "paperclip").font(.system(size: 20))
+                    .frame(width: LumenLayout.tapTarget, height: LumenLayout.tapTarget)
+            }
+            .disabled(!chat.isConfigured || !chat.canAttachMore || chat.isResponding)
+            .accessibilityLabel("Attach from library")
             TextField(chat.isConfigured ? "Message" : "Set up a model in Settings first", text: $chat.draft, axis: .vertical)
                 .lumenText(.body)
                 .lineLimit(1...6)
@@ -158,9 +265,30 @@ struct ChatView: View {
                 .accessibilityLabel("Send")
             }
         }
-        .padding(.horizontal, LumenSpace.screen)
-        .padding(.vertical, LumenSpace.s)
-        .background(.bar)
+    }
+}
+
+/// A library item attached to the message being written, removable before sending.
+private struct AttachmentChip: View {
+    let candidate: AttachmentCandidate
+    let remove: () -> Void
+
+    var body: some View {
+        HStack(spacing: LumenSpace.xs) {
+            Image(systemName: candidate.symbolName)
+            Text(candidate.title).lineLimit(1)
+            Button(action: remove) {
+                Image(systemName: "xmark.circle.fill")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(LumenColor.textSecondary)
+            .accessibilityLabel("Remove \(candidate.title)")
+        }
+        .lumenText(.caption)
+        .foregroundStyle(LumenColor.textPrimary)
+        .padding(.horizontal, LumenSpace.s)
+        .padding(.vertical, LumenSpace.xs)
+        .background(LumenColor.accentSubtle, in: Capsule())
     }
 }
 
@@ -172,6 +300,11 @@ private struct MessageBubble: View {
         HStack {
             if isUser { Spacer(minLength: LumenSpace.xxl) }
             VStack(alignment: .leading, spacing: LumenSpace.xs) {
+                ForEach(Array(message.attachments.enumerated()), id: \.offset) { _, attachment in
+                    Label(Self.describe(attachment), systemImage: "paperclip")
+                        .lumenText(.caption)
+                        .foregroundStyle(isUser ? LumenColor.onAccent : LumenColor.textSecondary)
+                }
                 if !message.text.isEmpty {
                     Text(attributed(message.text))
                         .lumenText(.body)
@@ -195,7 +328,21 @@ private struct MessageBubble: View {
             if !isUser { Spacer(minLength: LumenSpace.xxl) }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(isUser ? "You: \(message.text)" : "Assistant: \(message.text)")
+        .accessibilityLabel(accessibilityText(isUser: isUser))
+    }
+
+    private func accessibilityText(isUser: Bool) -> String {
+        var text = isUser ? "You: \(message.text)" : "Assistant: \(message.text)"
+        if !message.attachments.isEmpty {
+            text += ". Attached: " + message.attachments.map(\.title).joined(separator: ", ")
+        }
+        return text
+    }
+
+    /// "Trip notes", or "Trip notes · first 12,000 characters" when only the start was sent.
+    static func describe(_ attachment: MessageAttachment) -> String {
+        guard attachment.isTruncated else { return attachment.title }
+        return "\(attachment.title) · first \(attachment.includedCharacters.formatted()) characters"
     }
 
     private func attributed(_ text: String) -> AttributedString {

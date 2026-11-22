@@ -29,8 +29,8 @@ let package = Package(
         .target(
             name: "LumenPlatform",
             dependencies: [
-                kit("LumenApplication"), kit("LumenOrganization"), kit("LumenCore"), kit("LumenNotifications"),
-                kit("LumenSync"), kit("LumenFoundation"),
+                kit("LumenApplication"), kit("LumenOrganization"), kit("LumenKnowledge"), kit("LumenCore"),
+                kit("LumenNotifications"), kit("LumenSync"), kit("LumenFoundation"),
             ],
             swiftSettings: swiftSettings
         ),

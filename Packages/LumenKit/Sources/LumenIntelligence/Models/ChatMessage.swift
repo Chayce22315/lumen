@@ -31,6 +31,8 @@ public struct ChatMessage: Sendable, Hashable, Identifiable {
     public var errorMessage: String?
     /// The model that produced this message (assistant messages only).
     public var model: ModelSelection?
+    /// Library items sent along with this message (user messages only), stored as references.
+    public var attachments: [MessageAttachment]
 
     public init(
         id: ID = ID(),
@@ -41,7 +43,8 @@ public struct ChatMessage: Sendable, Hashable, Identifiable {
         createdAt: Date,
         usage: TokenUsage? = nil,
         errorMessage: String? = nil,
-        model: ModelSelection? = nil
+        model: ModelSelection? = nil,
+        attachments: [MessageAttachment] = []
     ) {
         self.id = id
         self.conversationID = conversationID
@@ -52,6 +55,7 @@ public struct ChatMessage: Sendable, Hashable, Identifiable {
         self.usage = usage
         self.errorMessage = errorMessage
         self.model = model
+        self.attachments = attachments
     }
 
     /// The visible text of the message (text blocks joined).
@@ -93,7 +97,7 @@ public struct ChatMessage: Sendable, Hashable, Identifiable {
 
 extension ChatMessage: Codable {
     enum CodingKeys: String, CodingKey {
-        case id, conversationID, role, blocks, status, createdAt, usage, errorMessage, model
+        case id, conversationID, role, blocks, status, createdAt, usage, errorMessage, model, attachments
     }
 
     public init(from decoder: any Decoder) throws {
@@ -107,7 +111,8 @@ extension ChatMessage: Codable {
             createdAt: try container.decode(Date.self, forKey: .createdAt),
             usage: try container.decodeIfPresent(TokenUsage.self, forKey: .usage),
             errorMessage: try container.decodeIfPresent(String.self, forKey: .errorMessage),
-            model: try container.decodeIfPresent(ModelSelection.self, forKey: .model)
+            model: try container.decodeIfPresent(ModelSelection.self, forKey: .model),
+            attachments: try container.decodeIfPresent([MessageAttachment].self, forKey: .attachments) ?? []
         )
     }
 
@@ -122,5 +127,8 @@ extension ChatMessage: Codable {
         try container.encodeIfPresent(usage, forKey: .usage)
         try container.encodeIfPresent(errorMessage, forKey: .errorMessage)
         try container.encodeIfPresent(model, forKey: .model)
+        if !attachments.isEmpty {
+            try container.encode(attachments, forKey: .attachments)
+        }
     }
 }

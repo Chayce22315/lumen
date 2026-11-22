@@ -19,6 +19,9 @@ public struct PlatformServices: Sendable {
     /// Where imported document files live. `nil` uses the configuration's documents directory
     /// (in memory for tests and previews).
     public var documentStorage: (any DocumentStorage)?
+    /// Text extraction for document formats beyond UTF-8 text (PDF via PDFKit on Apple
+    /// platforms), so they become searchable and attachable. Set after `init`.
+    public var documentTextExtractors: [any DocumentTextExtractor] = []
     /// HTTP for model providers. `nil` uses URLSession for real builds and no network for tests
     /// and previews (the assistant then reports that it isn't set up).
     public var httpTransport: (any HTTPStreamingTransport)?

@@ -33,6 +33,11 @@ public actor AssistantEngine {
         /// Estimated tokens kept free beyond the system prompt and tool definitions, because token
         /// counts are estimates.
         public var contextSafetyMargin: Int
+        /// Library items one message may carry.
+        public var maxAttachmentsPerMessage: Int
+        /// Characters of attachment text one message may send (further capped at half the history
+        /// budget; see `AttachmentBudget`).
+        public var maxAttachmentCharacters: Int
 
         public init(
             maxToolRounds: Int = 8,
@@ -42,8 +47,12 @@ public actor AssistantEngine {
             maxOutputTokens: Int = 64_000,
             unknownModelMaxOutputTokens: Int = 4_096,
             unknownModelContextWindow: Int = 32_000,
-            contextSafetyMargin: Int = 1_024
+            contextSafetyMargin: Int = 1_024,
+            maxAttachmentsPerMessage: Int = 10,
+            maxAttachmentCharacters: Int = 60_000
         ) {
+            self.maxAttachmentsPerMessage = max(0, maxAttachmentsPerMessage)
+            self.maxAttachmentCharacters = max(0, maxAttachmentCharacters)
             self.maxToolRounds = max(0, maxToolRounds)
             self.toolTimeout = max(0, toolTimeout)
             self.retryPolicy = retryPolicy
@@ -90,6 +99,7 @@ public actor AssistantEngine {
     let contextBuilder: ContextBuilder
     let approvalHandler: (any ToolApprovalHandler)?
     let contextProvider: (any AssistantContextProvider)?
+    let attachmentResolver: (any AttachmentResolver)?
     let timeSource: any TimeSource
     let calendar: Calendar
     let logger: Logger
@@ -110,6 +120,7 @@ public actor AssistantEngine {
         contextBuilder: ContextBuilder = ContextBuilder(),
         approvalHandler: (any ToolApprovalHandler)? = nil,
         contextProvider: (any AssistantContextProvider)? = nil,
+        attachmentResolver: (any AttachmentResolver)? = nil,
         timeSource: any TimeSource,
         calendar: Calendar,
         logger: Logger,
@@ -129,6 +140,7 @@ public actor AssistantEngine {
         self.contextBuilder = contextBuilder
         self.approvalHandler = approvalHandler
         self.contextProvider = contextProvider
+        self.attachmentResolver = attachmentResolver
         self.timeSource = timeSource
         self.calendar = calendar
         self.logger = logger
@@ -140,9 +152,13 @@ public actor AssistantEngine {
 
     /// Sends `text` as the user's next message and streams the reply.
     ///
-    /// The stream never throws: problems end it with `.failed` (configuration problems before
-    /// anything is persisted, provider problems after a failed assistant message is stored).
-    public func send(text: String, in conversationID: Conversation.ID) -> AsyncThrowingStream<AssistantUpdate, any Error> {
+    /// `attachments` are library items (notes, documents) whose text goes to the model with this
+    /// message; the message stores only their references (see `MessageAttachment`).
+    ///
+    /// The stream never throws: problems end it with `.failed` (configuration and attachment
+    /// problems before anything is persisted, provider problems after a failed assistant message
+    /// is stored).
+    public func send(text: String, attachments: [EntityReference] = [], in conversationID: Conversation.ID) -> AsyncThrowingStream<AssistantUpdate, any Error> {
         let (stream, updates) = AsyncThrowingStream<AssistantUpdate, any Error>.makeStream()
         guard activeTurns[conversationID] == nil else {
             updates.yield(.failed(AssistantError.turnInProgress.presentation))
@@ -151,7 +167,7 @@ public actor AssistantEngine {
         }
         let turnID = UUID()
         let task = Task {
-            await self.runTurn(text: text, conversationID: conversationID, turnID: turnID, updates: updates)
+            await self.runTurn(text: text, attachments: attachments, conversationID: conversationID, turnID: turnID, updates: updates)
         }
         updates.onTermination = { termination in
             if case .cancelled = termination {
@@ -185,7 +201,7 @@ public actor AssistantEngine {
         guard let provider = providers.provider(selection.providerID) else {
             throw AssistantError.providerUnavailable(selection.providerID)
         }
-        if provider.requiresAPIKey, try secrets.secret(for: provider.id.apiKeySecret)?.nonBlank == nil {
+        guard try hasCredentials(provider) else {
             throw ProviderError.missingAPIKey(provider: provider.displayName)
         }
         let descriptor = await catalog.descriptor(for: selection)

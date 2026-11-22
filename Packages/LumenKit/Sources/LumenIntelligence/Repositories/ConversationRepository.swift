@@ -35,9 +35,11 @@ public enum ConversationRepository {
                 conversation.createdAt, conversation.updatedAt, conversation.isArchived, conversation.isPinned,
             ]
         )
+        try ConversationSearchIndex.indexConversation(id: conversation.id, title: conversation.title, in: db)
     }
 
     public static func deleteRow(_ id: Conversation.ID, in db: DatabaseConnection) throws {
+        try ConversationSearchIndex.removeConversation(id: id, in: db)
         try db.execute("DELETE FROM intelligence_conversations WHERE id = ?", [id])
     }
 

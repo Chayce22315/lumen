@@ -28,8 +28,8 @@ public enum MessageRepository {
         try db.execute(
             """
             INSERT INTO intelligence_messages
-                (id, conversation_id, role, blocks, status, created_at, usage, error_message, provider_id, model_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, conversation_id, role, blocks, status, created_at, usage, error_message, provider_id, model_id, attachments)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 conversation_id = excluded.conversation_id,
                 role = excluded.role,
@@ -39,17 +39,21 @@ public enum MessageRepository {
                 usage = excluded.usage,
                 error_message = excluded.error_message,
                 provider_id = excluded.provider_id,
-                model_id = excluded.model_id
+                model_id = excluded.model_id,
+                attachments = excluded.attachments
             """,
             [
                 message.id, message.conversationID, message.role, JSONColumn(message.blocks), message.status,
                 message.createdAt, message.usage.map(JSONColumn.init), message.errorMessage,
                 message.model?.providerID, message.model?.modelID,
+                message.attachments.isEmpty ? nil : JSONColumn(message.attachments),
             ]
         )
+        try ConversationSearchIndex.indexMessage(id: message.id, text: message.text, in: db)
     }
 
     public static func deleteRow(_ id: ChatMessage.ID, in db: DatabaseConnection) throws {
+        try ConversationSearchIndex.removeMessage(id: id, in: db)
         try db.execute("DELETE FROM intelligence_messages WHERE id = ?", [id])
     }
 

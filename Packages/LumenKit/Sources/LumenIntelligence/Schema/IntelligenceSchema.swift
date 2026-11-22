@@ -62,5 +62,19 @@ public enum IntelligenceSchema {
             );
             CREATE INDEX intelligence_usage_recorded ON intelligence_usage (recorded_at);
             """),
+        // Attachments are references (JSON), never copies of the attached text. The search tables
+        // index titles and visible message text; their rowids are the indexed rows' rowids.
+        Migration("0002_message_attachments_and_search") { db in
+            try db.executeScript("""
+                ALTER TABLE intelligence_messages ADD COLUMN attachments TEXT;
+                CREATE VIRTUAL TABLE intelligence_conversation_search USING fts5(
+                    title, tokenize = 'unicode61 remove_diacritics 2'
+                );
+                CREATE VIRTUAL TABLE intelligence_message_search USING fts5(
+                    text, tokenize = 'unicode61 remove_diacritics 2'
+                );
+                """)
+            try ConversationSearchIndex.rebuild(in: db)
+        },
     ])
 }

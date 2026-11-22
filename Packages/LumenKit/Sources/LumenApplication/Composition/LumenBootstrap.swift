@@ -96,6 +96,7 @@ public enum LumenBootstrap {
         )
         let documents = DocumentService(
             database: database, storage: SyncingDocumentStorage(local: storage, blobs: blobs),
+            extractors: platform.documentTextExtractors,
             events: events, timeSource: timeSource, logger: logging.logger("documents")
         )
         let documentFiles = DocumentFileSync(documents: documents, local: storage, blobs: blobs, events: events, logger: logging.logger("sync.files"))
@@ -143,6 +144,7 @@ public enum LumenBootstrap {
             providers: providers, catalog: models, tools: tools, memory: memory,
             approvalHandler: approvals,
             contextProvider: WorkspaceContextProvider(agenda: agenda, projects: projects),
+            attachmentResolver: KnowledgeAttachmentResolver(notes: notes, documents: documents),
             timeSource: timeSource, calendar: calendar, logger: logging.logger("assistant")
         )
         let conversations = ConversationService(database: database, events: events, timeSource: timeSource, logger: logging.logger("conversations"))

@@ -38,7 +38,8 @@ extension ChatMessage {
             createdAt: try row.get("created_at"),
             usage: try row.optionalJSON("usage"),
             errorMessage: try row.get("error_message"),
-            model: storedSelection(providerID: try row.get("provider_id"), modelID: try row.get("model_id"))
+            model: storedSelection(providerID: try row.get("provider_id"), modelID: try row.get("model_id")),
+            attachments: try row.optionalJSON("attachments") ?? []
         )
     }
 }
