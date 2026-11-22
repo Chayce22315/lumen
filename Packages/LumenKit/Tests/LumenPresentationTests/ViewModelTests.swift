@@ -242,8 +242,10 @@ struct OtherViewModelTests {
         let (services, runtime) = try await makeServices()
         let editor = WorkflowEditorViewModel(services: services)
         editor.name = "Weekly review"
-        editor.addStep("organization.createTask")
-        editor.steps[0].parameters["title"] = "Review the week"
+        let step = try #require(editor.addStep("organization.createTask"))
+        var draft = try #require(editor.actionDraft(for: step))
+        draft.texts["title"] = "Review the week"
+        #expect(editor.update(step, action: draft))
         let workflow = try #require(await editor.save())
         #expect(workflow.graph.nodes.count == 2)
 
