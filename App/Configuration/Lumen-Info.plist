@@ -15,6 +15,11 @@
 	</array>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Lumen shows your calendar events next to your tasks. Events are read on this device and never uploaded.</string>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>AddTaskIntent</string>

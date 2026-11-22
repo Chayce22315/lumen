@@ -4,13 +4,14 @@ Generated from the repository tree; update it with the code (counts are Swift fi
 
 ```
 Lumen.xcodeproj/              Xcode project (synchronized folders, shared scheme)
-App/Lumen/                    App target: entry point, App Intents
+App/Lumen/                    App target: entry point, App Intents, asset catalog (icon, colors)
 App/LumenWidgets/             Widget extension: Today widget
 App/LumenUITests/             XCUITest smoke tests: launch, capture, completion, search
 App/Configuration/            Info.plists and entitlements
 Packages/LumenKit/            Portable modules (Linux-testable)
 Packages/LumenInterface/      SwiftUI modules (Apple only)
 Tools/LinuxToolchain/         Pinned Swift toolchain image
+Tools/AppIcon/render.py       Renders the app icon variants into the asset catalog (Pillow)
 scripts/lumenkit-linux.sh     Build/test LumenKit in the container
 scripts/ios-ui-tests.sh       Run the UI smoke tests on the newest iPhone simulator
 .github/workflows/ci.yml      CI: Linux 6.1/6.2, macOS tests, iOS Simulator build and UI tests

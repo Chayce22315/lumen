@@ -23,6 +23,7 @@ App/LumenWidgets/         Widget extension sources
 Packages/LumenKit/        Portable modules: engines, application layer, view models (Linux-testable)
 Packages/LumenInterface/  SwiftUI design system and feature screens (Apple platforms only)
 Tools/LinuxToolchain/     Pinned Linux toolchain image
+Tools/AppIcon/            App icon renderer
 scripts/                  Developer scripts
 ```
 
@@ -72,6 +73,13 @@ xcodebuild -project Lumen.xcodeproj -scheme Lumen \
   -destination 'generic/platform=iOS Simulator' \
   CODE_SIGNING_ALLOWED=NO build
 ```
+
+### App icon
+
+The icon is rendered, not drawn by hand: `python3 Tools/AppIcon/render.py` (needs Pillow) writes
+the default, dark and tinted 1024 pt variants into `App/Lumen/Assets.xcassets/AppIcon.appiconset`.
+Its colors mirror `Palette` in `LumenDesignTokens`, as do the `AccentColor` and `LaunchBackground`
+color sets; change them together.
 
 ### UI smoke tests
 
