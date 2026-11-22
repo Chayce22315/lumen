@@ -54,8 +54,12 @@ All notable changes to Lumen are recorded here. The format follows
 - `LaunchMode`: Debug builds started with `-LumenUITesting` run on an empty in-memory store with
   in-memory secrets, no system notifications and no network.
 - Quick capture has a Close button.
+- App icon (default, dark and tinted appearances) rendered by `Tools/AppIcon/render.py`; accent
+  color and a launch screen in the palette's background color, so launch no longer flashes white.
 
 ### Fixed
+- Plan's list counts were loaded once by the view and never refreshed after a capture or
+  completion; a `PlanViewModel` now owns them, follows task events and reports load errors.
 - A subscriber feedback loop: the reminder coordinator re-triggered itself through notification
   events (found by the end-to-end test; listeners are now scoped to their owning modules).
 - `DatabaseConnection.scalar` returns `nil` for NULL aggregates instead of a type error.

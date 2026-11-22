@@ -8,33 +8,33 @@ import LumenOrganization
 
 /// Plan: the task lists, projects and calendar.
 struct PlanView: View {
-    let services: LumenServices
     let model: AppModel
-    @State private var summary: TaskSummary?
-    @State private var counts: [SmartList: Int] = [:]
+    @State private var plan: PlanViewModel
 
-    private let lists: [(AppDestination.TaskListKind, SmartList, String)] = [
-        (.today, .today, "sun.max"),
-        (.upcoming, .upcoming, "calendar.day.timeline.left"),
-        (.overdue, .overdue, "clock.badge.exclamationmark"),
-        (.inbox, .inbox, "tray"),
-        (.anytime, .anytime, "square.grid.2x2"),
-        (.completed, .completed, "checkmark.circle"),
-    ]
+    init(services: LumenServices, model: AppModel) {
+        self.model = model
+        _plan = State(initialValue: PlanViewModel(services: services))
+    }
 
     var body: some View {
         List {
             Section {
-                ForEach(lists, id: \.0) { kind, list, symbol in
+                ForEach(PlanViewModel.lists) { list in
+                    let kind = Self.destination(for: list)
                     NavigationLink(value: AppDestination.tasks(kind)) {
                         HStack(spacing: LumenSpace.m) {
-                            IconBadge(symbol, tint: kind == .overdue && (counts[list] ?? 0) > 0 ? LumenColor.danger : LumenColor.accent)
+                            IconBadge(Self.symbol(for: list), tint: plan.isAlerting(list) ? LumenColor.danger : LumenColor.accent)
                             Text(list.title).lumenText(.body)
                             Spacer()
-                            if let count = counts[list], count > 0, list != .completed {
-                                Text("\(count)").lumenText(.subheadline).foregroundStyle(LumenColor.textSecondary).monospacedDigit()
+                            if let count = plan.badge(for: list) {
+                                Text("\(count)")
+                                    .lumenText(.subheadline)
+                                    .foregroundStyle(LumenColor.textSecondary)
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
                             }
                         }
+                        .lumenAnimation(.lumenSnappy, value: plan.badge(for: list))
                     }
                     .accessibilityIdentifier("plan.list.\(kind.rawValue)")
                 }
@@ -60,15 +60,29 @@ struct PlanView: View {
                     .accessibilityLabel("New task")
             }
         }
-        .task { await loadCounts() }
-        .refreshable { await loadCounts() }
+        .task { await plan.start() }
+        .refreshable { await plan.load() }
     }
 
-    private func loadCounts() async {
-        var result: [SmartList: Int] = [:]
-        for (_, list, _) in lists where list != .completed {
-            result[list] = (try? await services.organization.tasks.list(list).count) ?? 0
+    private static func destination(for list: SmartList) -> AppDestination.TaskListKind {
+        switch list {
+        case .today: return .today
+        case .upcoming: return .upcoming
+        case .overdue: return .overdue
+        case .inbox: return .inbox
+        case .anytime: return .anytime
+        case .completed: return .completed
         }
-        counts = result
+    }
+
+    private static func symbol(for list: SmartList) -> String {
+        switch list {
+        case .today: return "sun.max"
+        case .upcoming: return "calendar.day.timeline.left"
+        case .overdue: return "clock.badge.exclamationmark"
+        case .inbox: return "tray"
+        case .anytime: return "square.grid.2x2"
+        case .completed: return "checkmark.circle"
+        }
     }
 }

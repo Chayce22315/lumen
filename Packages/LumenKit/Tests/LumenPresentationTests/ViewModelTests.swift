@@ -73,6 +73,27 @@ struct TaskViewModelTests {
         await runtime.shutdown()
     }
 
+    @Test("Plan counts open tasks per list and follows changes")
+    func planCounts() async throws {
+        let (services, runtime) = try await makeServices()
+        let plan = PlanViewModel(services: services)
+        await plan.start()
+        #expect(plan.counts == [.today: 0, .upcoming: 0, .overdue: 0, .inbox: 0, .anytime: 0])
+        #expect(plan.badge(for: .inbox) == nil)
+
+        let inbox = try await services.organization.tasks.create(TaskDraft(title: "Loose end"))
+        _ = try await services.organization.tasks.create(TaskDraft(title: "Late", dueDate: services.today.adding(days: -1)))
+        #expect(await eventually { plan.badge(for: .inbox) == 1 && plan.badge(for: .overdue) == 1 })
+        #expect(plan.badge(for: .today) == 1) // overdue work is also due today
+        #expect(plan.isAlerting(.overdue))
+        #expect(!plan.isAlerting(.inbox))
+
+        _ = try await services.organization.tasks.complete(inbox.id)
+        #expect(await eventually { plan.badge(for: .inbox) == nil })
+        #expect(plan.badge(for: .completed) == nil) // never badged
+        await runtime.shutdown()
+    }
+
     @Test("quick capture shows what it understood and creates the task")
     func capture() async throws {
         let (services, runtime) = try await makeServices()
