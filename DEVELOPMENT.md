@@ -56,6 +56,15 @@ swift test --package-path Packages/LumenKit
 ### The app
 
 Open `Lumen.xcodeproj`, select the **Lumen** scheme and an iOS 18+ simulator, then build.
+
+To run on a device, set your team on both targets (Signing & Capabilities). The app and the widget
+share data through the App Group `group.app.lumen` (`App/Configuration/*.entitlements` and
+`SharedContainer.appGroupIdentifier`); change both if you use another identifier. Without a
+provisioned App Group the app falls back to its own container and the widget shows its
+"open Lumen" state.
+
+The assistant needs an API key for Anthropic or OpenAI, entered in Settings › Assistant; it is
+stored only in the Keychain.
 From the command line:
 
 ```sh

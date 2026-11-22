@@ -50,10 +50,12 @@ Dependencies point strictly downward. Engines never import each other.
 | `LumenAnalytics` | Local event collection, daily aggregates, productivity insights, comparisons, reports | Core |
 | `LumenSync` | Local-first sync over the change log: transport abstraction, three-way merge, conflict records, retry queue, history | Core |
 | `LumenPlugins` | Plugin manifests, capability declarations, permission grants, lifecycle | Core, extension protocols of the engines it hosts |
-| `LumenApplication` | Composition root, bootstrap and shutdown, built-in feature integrations (tools, actions, search sources, sync handlers), widget snapshot | all engines |
-| `LumenPresentation` | `@Observable` view models for every screen, formatting | Application |
+| `LumenWidgetData` | The snapshot the widget renders and the shared App Group location | — |
+| `LumenApplication` | Composition root, bootstrap and shutdown, built-in features registered as plugins (assistant tools, automation actions and triggers, search sources, sync handlers, commands), Home, reminders, widget snapshot, deep links | all engines |
+| `LumenPresentation` | `@Observable` view models for every screen, router, date labels | Application |
 | `LumenDesignSystem` | SwiftUI rendering of the tokens, components, motion, haptics | DesignTokens |
-| `LumenUI` | Screens, navigation, sheets, command palette, onboarding | Presentation, DesignSystem |
+| `LumenPlatform` | Apple adapters: EventKit calendar source, Keychain and UserNotifications wiring, WidgetKit reloads, the shared services instance | Application |
+| `LumenUI` | Screens, navigation, sheets, command palette | Presentation, DesignSystem, Platform |
 
 ## 3. Decisions
 
@@ -92,14 +94,23 @@ log is therefore never out of step with the data (sync correctness), while event
 (search indexer, analytics, automation triggers, widget snapshot, view models) are eventually
 consistent and can always be rebuilt from storage.
 
-### D5 — Hybrid logical clocks and field-level three-way merge
+### D5 — Hybrid logical clocks and a per-field last-writer-wins state CRDT
 
-Each change carries a hybrid timestamp (physical time + logical counter + replica id). The sync
-engine keeps the last synchronized snapshot of every entity ("base") and merges remote changes
-field by field: a field changed on one side only takes that side; a field changed on both sides
-is a conflict resolved by the later hybrid timestamp and recorded for review. Deletions win over
-concurrent edits unless the edit is newer, in which case the entity is resurrected and the
-conflict recorded.
+*Alternatives:* whole-entity last-writer-wins; snapshot three-way merge against a stored base.
+
+*Chosen:* every synchronized entity is represented on the wire as an `EntityState`: a map of
+fields, each with the hybrid timestamp (physical time + logical counter + replica id) of the change
+that last set it, plus a deletion tombstone. Merging takes the newer timestamp per field and the
+newer tombstone; an entity is deleted when its tombstone is at least as new as every field.
+
+*Why:* the merge is commutative, associative and idempotent, so every replica converges whatever
+order changes arrive in, and the server can be a dumb ordered log. A snapshot three-way merge was
+implemented first and rejected: with push-then-pull ordering, a concurrent edit to a different
+field on another device could be silently overwritten. Field timestamps are derived exactly from
+the change log (each local change is diffed against the record before it), so a field a device
+did not touch can never overwrite a newer remote edit. Shadows remember, per replica, the newest
+write observed for each entity; a conflict is recorded only when a write that was genuinely new to
+this device lost to a different value, and the losing value can be restored from Settings.
 
 ### D6 — Settings are device-local; secrets are Keychain-only
 
@@ -157,7 +168,18 @@ the interface as non-blocking banners.
 - Plugins declare capabilities; each capability is granted explicitly by the user and enforced
   by the permission-checked context the plugin receives.
 
-## 8. Testing strategy
+## 8. The assistant and automations act through the same services
+
+Assistant tools (`create_task`, `search_lumen`, `get_agenda`, `run_workflow`, …) and automation
+actions (`organization.createTask`, `knowledge.appendToNote`, `notifications.send`, …) are thin
+adapters over the same services the interface uses, so validation, events, analytics, search
+indexing, reminders and sync behave identically whoever acts. Events carry the actor
+(`assistant`, `automation`), which keeps analytics honest and lets automations ignore their own
+output beyond a causation depth. Mutating assistant tools wait for the user's approval through
+`ToolApprovalBroker` unless the user turned approval off; with no interface attached the answer
+is "no".
+
+## 9. Testing strategy
 
 | Layer | How it is verified |
 | --- | --- |
