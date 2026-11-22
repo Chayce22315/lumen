@@ -105,7 +105,7 @@ public struct ExternalEventRecord: Sendable, Hashable {
     public var replacesRecurrence: Bool
     /// Alerts relative to the start, in minutes before it.
     public var alertOffsets: [Int]
-    /// Alerts at a fixed date and time. Lumen can't edit them; saving keeps them.
+    /// Alerts Lumen can't edit (at a fixed date and time, or after the start); saving keeps them.
     public var fixedAlertCount: Int
 
     public init(
