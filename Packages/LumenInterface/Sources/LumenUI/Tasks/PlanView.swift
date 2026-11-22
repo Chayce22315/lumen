@@ -36,6 +36,7 @@ struct PlanView: View {
                             }
                         }
                     }
+                    .accessibilityIdentifier("plan.list.\(kind.rawValue)")
                 }
             }
             Section {

@@ -17,9 +17,17 @@ struct QuickCaptureView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: LumenSpace.l) {
-            Text("New task")
-                .lumenText(.headline)
-                .foregroundStyle(LumenColor.textSecondary)
+            HStack {
+                Text("New task")
+                    .lumenText(.headline)
+                    .foregroundStyle(LumenColor.textSecondary)
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                Button("Close") { dismiss() }
+                    .lumenText(.subheadline)
+                    .foregroundStyle(LumenColor.textSecondary)
+                    .accessibilityIdentifier("quickCapture.close")
+            }
             TextField("Call Sam tomorrow at 5pm !high #family", text: $capture.text, axis: .vertical)
                 .lumenText(.body)
                 .focused($isFocused)
@@ -28,6 +36,7 @@ struct QuickCaptureView: View {
                 .padding(LumenSpace.m)
                 .background(LumenColor.surface, in: RoundedRectangle(cornerRadius: LumenRadius.medium, style: .continuous))
                 .accessibilityLabel("Task")
+                .accessibilityIdentifier("quickCapture.field")
                 .accessibilityHint("Type a title. Dates, times, priorities like !high, #tags and +project are recognised.")
             chips
             if let error = capture.error {
@@ -39,11 +48,13 @@ struct QuickCaptureView: View {
                         .lumenText(.footnote)
                         .foregroundStyle(LumenColor.success)
                         .transition(.opacity)
+                        .accessibilityIdentifier("quickCapture.confirmation")
                 }
                 Spacer()
                 Button("Add") { Task { await submit() } }
                     .buttonStyle(.lumenPrimary)
                     .disabled(!capture.canSubmit)
+                    .accessibilityIdentifier("quickCapture.add")
             }
         }
         .padding(LumenSpace.screen)

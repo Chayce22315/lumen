@@ -187,4 +187,4 @@ is "no".
 | Repositories and services | Integration tests on in-memory SQLite with a manual clock |
 | Providers and transports | Recorded/fake transports; SSE parsing tested byte-for-byte |
 | View models | Unit tests on Linux with fake services |
-| Interface | Built for the iOS Simulator on CI; previews use in-memory composition |
+| Interface | Built for the iOS Simulator on CI; XCUITest smoke tests drive the real app on an in-memory store (`-LumenUITesting`); previews use in-memory composition |

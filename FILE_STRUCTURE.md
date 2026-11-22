@@ -6,12 +6,14 @@ Generated from the repository tree; update it with the code (counts are Swift fi
 Lumen.xcodeproj/              Xcode project (synchronized folders, shared scheme)
 App/Lumen/                    App target: entry point, App Intents
 App/LumenWidgets/             Widget extension: Today widget
+App/LumenUITests/             XCUITest smoke tests: launch, capture, completion, search
 App/Configuration/            Info.plists and entitlements
 Packages/LumenKit/            Portable modules (Linux-testable)
 Packages/LumenInterface/      SwiftUI modules (Apple only)
 Tools/LinuxToolchain/         Pinned Swift toolchain image
 scripts/lumenkit-linux.sh     Build/test LumenKit in the container
-.github/workflows/ci.yml      CI: Linux 6.1/6.2, macOS tests, iOS Simulator build
+scripts/ios-ui-tests.sh       Run the UI smoke tests on the newest iPhone simulator
+.github/workflows/ci.yml      CI: Linux 6.1/6.2, macOS tests, iOS Simulator build and UI tests
 ```
 
 ## Packages/LumenKit

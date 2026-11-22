@@ -44,8 +44,8 @@ with tests, and keeps both CI jobs green. Status reflects what is in the reposit
 
 - [x] SwiftUI design system and every screen wired to its view model.
 - [x] Xcode project, widget extension (Today widget), App Intents (add task, today summary, add note).
-- [ ] First green `xcodebuild` on CI (the interface is compiled only by Xcode; iterate until clean).
-- [ ] Snapshot/UI smoke tests (XCUITest target) for launch, capture, completion.
+- [x] First green `xcodebuild` on CI: app, widget extension and App Intents for the iOS Simulator.
+- [ ] UI smoke tests (XCUITest target) for launch, capture, completion and search, run on CI.
 - [ ] App icon and launch polish.
 
 ## Phase 5 — Depth

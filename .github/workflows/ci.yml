@@ -59,3 +59,15 @@ jobs:
           fi
           grep -E "warning: " build/xcodebuild.log | grep -v "/DerivedData/" | sort -u | head -100 || true
           echo "BUILD SUCCEEDED"
+      - name: UI smoke tests on iOS Simulator
+        if: hashFiles('Lumen.xcodeproj/project.pbxproj') != ''
+        run: scripts/ios-ui-tests.sh
+      - name: Keep the UI test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results
+          path: |
+            build/UITests.xcresult
+            build/ui-tests.log
+          if-no-files-found: ignore

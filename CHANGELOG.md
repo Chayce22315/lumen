@@ -48,6 +48,12 @@ All notable changes to Lumen are recorded here. The format follows
 - `LumenInterface`: SwiftUI design system, platform adapters and all screens; Xcode project with
   app target, Today widget and App Intents.
 - `ARCHITECTURE.md`, `DEVELOPMENT.md`, `ROADMAP.md`, `FILE_STRUCTURE.md`.
+- `LumenUITests` XCUITest target with smoke tests for launch, every tab, quick capture, completing
+  a task from its checkbox and finding it in search; `scripts/ios-ui-tests.sh` and a CI step that
+  runs them on an iPhone simulator.
+- `LaunchMode`: Debug builds started with `-LumenUITesting` run on an empty in-memory store with
+  in-memory secrets, no system notifications and no network.
+- Quick capture has a Close button.
 
 ### Fixed
 - A subscriber feedback loop: the reminder coordinator re-triggered itself through notification

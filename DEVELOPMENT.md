@@ -73,13 +73,31 @@ xcodebuild -project Lumen.xcodeproj -scheme Lumen \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
+### UI smoke tests
+
+`App/LumenUITests` drives the real app with XCUITest: launch and every tab, quick capture,
+completing a task from its checkbox, and finding it in search. Run them from Xcode (⌘U on the
+**Lumen** scheme) or:
+
+```sh
+scripts/ios-ui-tests.sh                        # newest available iPhone simulator, iOS 18+
+LUMEN_SIMULATOR=<udid> scripts/ios-ui-tests.sh # a specific simulator
+```
+
+The tests launch the app with `-LumenUITesting` (`LaunchMode` in `LumenPlatform`). In Debug
+builds that gives each launch an empty in-memory store, in-memory secrets, no system
+notifications and no network, so a run never reads or changes real data. Release builds ignore
+the argument. Controls the tests reach for carry an `accessibilityIdentifier`
+(`quickCapture.field`, `plan.list.inbox`, …); keep them stable when changing those screens.
+
 ### Continuous integration
 
 `.github/workflows/ci.yml` runs on every push:
 
 - **linux** — `swift test` for LumenKit in Swift 6.1 and 6.2 containers.
 - **apple** — `swift test` for LumenKit on macOS (exercises the Apple-only code paths such as the
-  SDK SQLite module and Keychain), then an `xcodebuild` of the app for the iOS Simulator.
+  SDK SQLite module and Keychain), an `xcodebuild` of the app for the iOS Simulator, then the UI
+  smoke tests on an iPhone simulator (the result bundle is uploaded when they fail).
 
 A change is not done until both jobs are green.
 
