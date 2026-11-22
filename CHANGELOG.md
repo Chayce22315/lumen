@@ -58,6 +58,10 @@ All notable changes to Lumen are recorded here. The format follows
   color and a launch screen in the palette's background color, so launch no longer flashes white.
 
 ### Fixed
+- Completing a task in a smart list (Inbox, Today, Upcoming, Anytime) or a tag list made the row
+  vanish on the next refresh, a quarter second later, cutting off the checkmark and the chance to
+  undo. Completed rows now stay checked in place until the list is left, as they already did in
+  projects. Found by the UI smoke test.
 - Plan's list counts were loaded once by the view and never refreshed after a capture or
   completion; a `PlanViewModel` now owns them, follows task events and reports load errors.
 - A subscriber feedback loop: the reminder coordinator re-triggered itself through notification

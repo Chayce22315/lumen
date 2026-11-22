@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the XCUITest smoke tests (App/LumenUITests) on an iOS Simulator.
 #
-#   scripts/ios-ui-tests.sh                 # newest available iPhone simulator
+#   scripts/ios-ui-tests.sh                 # newest iPhone on the newest iOS runtime
 #   LUMEN_SIMULATOR=<udid> scripts/ios-ui-tests.sh
 #
 # Needs Xcode 16 or newer. Output goes to build/ui-tests.log and build/UITests.xcresult.
@@ -23,10 +23,14 @@ for runtime, entries in devices.items():
     if version < (18, 0):
         continue
     for device in entries:
-        if device.get("isAvailable") and device["name"].startswith("iPhone"):
-            key = (version, device["name"])
-            if best is None or key > best[0]:
-                best = (key, device["udid"])
+        name = device["name"]
+        if not (device.get("isAvailable") and name.startswith("iPhone")):
+            continue
+        # Newest runtime, then the highest model number, then the base model (shortest name).
+        model = re.match(r"iPhone (\d+)", name)
+        key = (version, int(model.group(1)) if model else 0, -len(name))
+        if best is None or key > best[0]:
+            best = (key, device["udid"])
 if best is None:
     sys.exit("No available iPhone simulator with iOS 18 or newer")
 print(best[1])
@@ -49,7 +53,14 @@ xcodebuild \
 
 grep -E "Test Case .* (passed|failed)|error: |Executed [0-9]+ test" build/ui-tests.log | sort -u || true
 if [[ $status -ne 0 ]]; then
+  # Every step of each failing test, so a CI log is enough to diagnose it.
+  echo "::group::Activity of failing tests"
+  awk '/Test Case .* started/ { block = ""; keep = 1 }
+       keep { block = block $0 "\n" }
+       /Test Case .* passed/ { keep = 0 }
+       /Test Case .* failed/ { printf "%s", block; keep = 0 }' build/ui-tests.log | tail -400
+  echo "::endgroup::"
   echo "xcodebuild test failed with status $status; last lines of build/ui-tests.log:"
-  tail -60 build/ui-tests.log
+  tail -40 build/ui-tests.log
   exit "$status"
 fi

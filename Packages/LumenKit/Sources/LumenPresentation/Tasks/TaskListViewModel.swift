@@ -20,7 +20,8 @@ public final class TaskListViewModel {
     public let source: TaskListSource
     public private(set) var state: LoadState<[TaskRowModel]> = .idle
     public private(set) var title: String
-    /// Rows completed in this session stay visible briefly so the checkmark animation can finish.
+    /// Rows completed while this list is open stay in place (checked) until the list is left, so
+    /// the checkmark animation can finish and a mistaken tap can be undone with another tap.
     public private(set) var recentlyCompleted: Set<TaskItem.ID> = []
 
     private let services: LumenServices
@@ -63,7 +64,7 @@ public final class TaskListViewModel {
             case .tag(let tag):
                 listed = try await tasks.tasks(TaskQuery(statuses: [.todo, .inProgress], tag: tag))
             }
-            let visible = listed.filter { $0.isOpen || recentlyCompleted.contains($0.id) || source != .smart(.today) }
+            let visible = try await keepingRecentlyCompleted(listed)
             let projects = Dictionary(try await services.organization.projects.projects().map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
             let all = try await tasks.allTasks()
             let subtasks = Dictionary(grouping: all.filter { $0.parentID != nil }, by: { $0.parentID ?? $0.id })
@@ -76,6 +77,24 @@ public final class TaskListViewModel {
                 services.errors.report(error, context: "Refreshing tasks")
             }
         }
+    }
+
+    /// Adds back tasks completed while the list is open that the query no longer returns (smart
+    /// lists and tags only return open tasks), at the position they had.
+    private func keepingRecentlyCompleted(_ listed: [TaskItem]) async throws -> [TaskItem] {
+        let present = Set(listed.map(\.id))
+        let previous = rows.map(\.id)
+        let missing = recentlyCompleted
+            .filter { !present.contains($0) }
+            .sorted { (previous.firstIndex(of: $0) ?? .max) < (previous.firstIndex(of: $1) ?? .max) }
+        guard !missing.isEmpty else { return listed }
+        var result = listed
+        for id in missing {
+            guard let task = try await services.organization.tasks.task(id), task.status.isClosed else { continue }
+            let position = previous.firstIndex(of: id).map { min($0, result.count) } ?? result.count
+            result.insert(task, at: position)
+        }
+        return result
     }
 
     /// Toggles done/open, updating the row before the write lands.

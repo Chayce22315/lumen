@@ -48,7 +48,13 @@ final class LumenSmokeTests: XCTestCase {
         let completedRow = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", title, "completed"))
             .firstMatch
-        XCTAssertTrue(completedRow.waitForExistence(timeout: timeout), "Tapping the checkbox did not complete the task")
+        if !completedRow.waitForExistence(timeout: timeout) {
+            XCTFail(
+                app.navigationBars["Inbox"].exists
+                    ? "Tapping the checkbox did not complete the task"
+                    : "Tapping the checkbox opened the task instead of completing it"
+            )
+        }
 
         app.navigationBars["Inbox"].buttons["Plan"].tap()
         element("plan.list.completed", in: app).tap()

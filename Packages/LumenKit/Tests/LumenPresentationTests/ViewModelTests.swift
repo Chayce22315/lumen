@@ -73,6 +73,37 @@ struct TaskViewModelTests {
         await runtime.shutdown()
     }
 
+    @Test("completed rows stay checked in place in smart lists until the list is left")
+    func completedRowsStay() async throws {
+        let clock = ManualTimeSource()
+        let (services, runtime) = try await makeServices(clock: clock)
+        let first = try await services.organization.tasks.create(TaskDraft(title: "First"))
+        clock.advance(by: 1)
+        _ = try await services.organization.tasks.create(TaskDraft(title: "Second"))
+        let list = TaskListViewModel(source: .smart(.inbox), services: services, locale: posix)
+        await list.start()
+        let position = try #require(list.rows.firstIndex { $0.id == first.id })
+
+        await list.toggleCompletion(first.id)
+        // Another change reloads the list; the inbox query no longer returns the completed task.
+        clock.advance(by: 1)
+        _ = try await services.organization.tasks.create(TaskDraft(title: "Third"))
+        #expect(await eventually { list.rows.contains { $0.task.title == "Third" } })
+        #expect(list.rows.first { $0.id == first.id }?.isDone == true)
+        #expect(list.rows.firstIndex { $0.id == first.id } == position)
+
+        // A second tap undoes it.
+        await list.toggleCompletion(first.id)
+        #expect(try await services.organization.tasks.task(first.id)?.isOpen == true)
+        _ = try await services.organization.tasks.complete(first.id)
+
+        // Coming back to the list shows open tasks only.
+        let revisited = TaskListViewModel(source: .smart(.inbox), services: services, locale: posix)
+        await revisited.load()
+        #expect(!revisited.rows.contains { $0.id == first.id })
+        await runtime.shutdown()
+    }
+
     @Test("Plan counts open tasks per list and follows changes")
     func planCounts() async throws {
         let (services, runtime) = try await makeServices()
