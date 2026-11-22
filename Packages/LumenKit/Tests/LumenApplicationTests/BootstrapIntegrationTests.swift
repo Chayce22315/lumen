@@ -68,7 +68,7 @@ struct BootstrapIntegrationTests {
         let app = try await RunningApp.start()
         defer { try? FileManager.default.removeItem(at: app.directory) }
         let statuses = await app.services.plugins.host.statuses()
-        #expect(statuses.map(\.id) == ["app.lumen.core", "app.lumen.organization"])
+        #expect(statuses.map(\.id) == ["app.lumen.core", "app.lumen.organization", "app.lumen.knowledge"])
         #expect(statuses.allSatisfy { $0.state == .active })
         #expect(app.services.commands.registry.command(id: "create.task") != nil)
         #expect(app.services.commands.action(for: "navigate.home") != nil)
@@ -122,8 +122,32 @@ struct BootstrapIntegrationTests {
             Issue.record("command missing")
             return
         }
-        #expect(try await work() == "Moved 1 task to today.")
+        #expect(try await work() == CommandResult(message: "Moved 1 task to today.", destination: .tasks(.today)))
         #expect(try await tasks.list(.overdue).isEmpty)
+        await app.runtime.shutdown()
+    }
+
+    @Test("notes are searchable, synchronizable and on Home; the journal command opens today's note")
+    func knowledge() async throws {
+        let app = try await RunningApp.start()
+        defer { try? FileManager.default.removeItem(at: app.directory) }
+        let services = app.services
+        let note = try await services.knowledge.notes.create(title: "Garden plan", body: "Plant **tomatoes** in May. #garden")
+        #expect(try await eventually { try await services.search.service.search(SearchQuery(text: "tomatoes")).first?.reference == note.reference })
+        #expect(try await services.sync.pendingChangeCount() >= 1)
+        let home = try await services.home.snapshot(assistantConfigured: true)
+        #expect(home.recentNotes.map(\.id) == [note.id])
+        #expect(try await eventually { try await services.home.snapshot(assistantConfigured: true).activity.contains { $0.title == "Wrote “Garden plan”" } })
+
+        guard case .perform(let journal)? = services.commands.action(for: "notes.daily") else {
+            Issue.record("journal command missing")
+            return
+        }
+        let first = try await journal()
+        let second = try await journal()
+        #expect(first.message == "Created Journal 2026-11-21.")
+        #expect(second.message == nil)
+        #expect(first.destination == second.destination)
         await app.runtime.shutdown()
     }
 

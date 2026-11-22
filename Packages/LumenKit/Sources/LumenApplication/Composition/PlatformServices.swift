@@ -5,6 +5,7 @@ import LumenNotifications
 import LumenOrganization
 import LumenSync
 import LumenPlugins
+import LumenKnowledge
 
 /// Everything that differs between the real app, previews and tests. The app target fills this
 /// with Keychain, UserNotifications, EventKit and WidgetKit adapters; previews and tests use
@@ -14,6 +15,9 @@ public struct PlatformServices: Sendable {
     public var notificationScheduler: any SystemNotificationScheduling
     public var externalCalendar: (any ExternalCalendarSource)?
     public var syncTransport: (any SyncTransport)?
+    /// Where imported document files live. `nil` uses the configuration's documents directory
+    /// (in memory for tests and previews).
+    public var documentStorage: (any DocumentStorage)?
     public var additionalLogSinks: [any LogSink]
     /// Third-party plugins bundled with or installed into this build.
     public var plugins: [any LumenPlugin]
@@ -25,6 +29,7 @@ public struct PlatformServices: Sendable {
         notificationScheduler: any SystemNotificationScheduling,
         externalCalendar: (any ExternalCalendarSource)? = nil,
         syncTransport: (any SyncTransport)? = nil,
+        documentStorage: (any DocumentStorage)? = nil,
         additionalLogSinks: [any LogSink] = [],
         plugins: [any LumenPlugin] = [],
         reloadWidgets: @escaping @Sendable () -> Void = {}
@@ -33,6 +38,7 @@ public struct PlatformServices: Sendable {
         self.notificationScheduler = notificationScheduler
         self.externalCalendar = externalCalendar
         self.syncTransport = syncTransport
+        self.documentStorage = documentStorage
         self.additionalLogSinks = additionalLogSinks
         self.plugins = plugins
         self.reloadWidgets = reloadWidgets

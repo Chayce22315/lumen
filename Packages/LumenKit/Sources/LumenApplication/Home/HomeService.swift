@@ -6,6 +6,7 @@ import LumenOrganization
 import LumenSearch
 import LumenSync
 import LumenAnalytics
+import LumenKnowledge
 
 /// One line of the recent-activity widget.
 public struct ActivityItem: Sendable, Hashable, Identifiable {
@@ -36,6 +37,8 @@ public struct HomeSnapshot: Sendable, Hashable {
     public let activity: [ActivityItem]
     public let insights: [Insight]
     public let currentStreak: Int
+    /// Recently edited notes that are not archived.
+    public let recentNotes: [Note]
 }
 
 /// Assembles Home from the engines. Each section is independent: a failing section is reported
@@ -46,6 +49,7 @@ public final class HomeService: Sendable {
     private let tasks: TaskService
     private let projects: ProjectService
     private let agenda: AgendaService
+    private let notes: NoteService
     private let notifications: NotificationService
     private let analytics: AnalyticsServices
     private let sync: SyncEngine
@@ -58,6 +62,7 @@ public final class HomeService: Sendable {
         tasks: TaskService,
         projects: ProjectService,
         agenda: AgendaService,
+        notes: NoteService,
         notifications: NotificationService,
         analytics: AnalyticsServices,
         sync: SyncEngine,
@@ -69,6 +74,7 @@ public final class HomeService: Sendable {
         self.tasks = tasks
         self.projects = projects
         self.agenda = agenda
+        self.notes = notes
         self.notifications = notifications
         self.analytics = analytics
         self.sync = sync
@@ -97,7 +103,8 @@ public final class HomeService: Sendable {
         async let upcomingResult = agenda.agenda(from: today.adding(days: 1), days: 6)
         async let projectResult = projects.liveProjectProgress()
         async let unreadResult = notifications.unreadCount()
-        async let activityResult = analytics.service.recentEvents(limit: 12, names: Set(OrganizationEvent.all))
+        async let activityResult = analytics.service.recentEvents(limit: 12, names: ActivityPhrasing.names)
+        async let notesResult = notes.recent(limit: 8)
         async let insightResult = analytics.service.insights(signals: analytics.signals, today: today, limit: 3)
         async let snapshotResult = analytics.service.activitySnapshot(signals: analytics.signals, today: today)
         let layout = await self.layout()
@@ -155,7 +162,8 @@ public final class HomeService: Sendable {
             suggestions: SuggestionEngine.suggestions(for: context),
             activity: try await activityItems(from: try await activityResult),
             insights: try await insightResult,
-            currentStreak: streak
+            currentStreak: streak,
+            recentNotes: Array(try await notesResult.filter { !$0.isArchived }.prefix(4))
         )
     }
 
@@ -171,9 +179,7 @@ public final class HomeService: Sendable {
                 symbolName: symbol,
                 occurredAt: record.occurredAt,
                 actor: record.actor,
-                destination: record.name == OrganizationEvent.taskDeleted || record.name == OrganizationEvent.projectDeleted
-                    ? nil
-                    : record.entity.map(AppDestination.entity)
+                destination: ActivityPhrasing.deletions.contains(record.name) ? nil : record.entity.map(AppDestination.entity)
             )
         }
     }
@@ -181,6 +187,14 @@ public final class HomeService: Sendable {
 
 /// Human phrasing for activity events.
 enum ActivityPhrasing {
+    static let names: Set<EventName> = [
+        OrganizationEvent.taskCreated, OrganizationEvent.taskCompleted, OrganizationEvent.taskReopened, OrganizationEvent.taskCancelled,
+        OrganizationEvent.taskDeleted, OrganizationEvent.projectCreated, OrganizationEvent.projectCompleted, OrganizationEvent.eventCreated,
+        KnowledgeEvents.noteCreated, KnowledgeEvents.documentImported, KnowledgeEvents.noteDeleted,
+    ]
+
+    static let deletions: Set<EventName> = [OrganizationEvent.taskDeleted, OrganizationEvent.projectDeleted, KnowledgeEvents.noteDeleted]
+
     static func describe(_ name: EventName) -> (verb: String, symbol: String)? {
         switch name {
         case OrganizationEvent.taskCreated: return ("Added", "plus.circle")
@@ -191,6 +205,9 @@ enum ActivityPhrasing {
         case OrganizationEvent.projectCreated: return ("Started project", "folder.badge.plus")
         case OrganizationEvent.projectCompleted: return ("Finished project", "flag.checkered")
         case OrganizationEvent.eventCreated: return ("Scheduled", "calendar.badge.plus")
+        case KnowledgeEvents.noteCreated: return ("Wrote", "square.and.pencil")
+        case KnowledgeEvents.documentImported: return ("Imported", "doc.badge.plus")
+        case KnowledgeEvents.noteDeleted: return ("Deleted a note", "trash")
         default: return nil
         }
     }
@@ -200,6 +217,8 @@ enum ActivityPhrasing {
         case .task?: return "a task"
         case .project?: return "a project"
         case .calendarEvent?: return "an event"
+        case .note?: return "a note"
+        case .document?: return "a document"
         default: return ""
         }
     }

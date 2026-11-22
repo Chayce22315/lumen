@@ -8,6 +8,7 @@ import LumenSearch
 import LumenSync
 import LumenPlugins
 import LumenAnalytics
+import LumenKnowledge
 
 public struct OrganizationServices: Sendable {
     public let tasks: TaskService
@@ -15,6 +16,13 @@ public struct OrganizationServices: Sendable {
     public let calendars: CalendarService
     public let agenda: AgendaService
     public let reminders: ReminderCoordinator
+}
+
+public struct KnowledgeServices: Sendable {
+    public let notes: NoteService
+    public let collections: CollectionService
+    public let documents: DocumentService
+    public let tags: TagService
 }
 
 public struct SearchServices: Sendable {
@@ -51,6 +59,7 @@ public final class LumenServices: Sendable {
     public let errors: ErrorReporter
     public let notifications: NotificationService
     public let organization: OrganizationServices
+    public let knowledge: KnowledgeServices
     public let search: SearchServices
     public let analytics: AnalyticsServices
     public let sync: SyncEngine
@@ -72,6 +81,7 @@ public final class LumenServices: Sendable {
         errors: ErrorReporter,
         notifications: NotificationService,
         organization: OrganizationServices,
+        knowledge: KnowledgeServices,
         search: SearchServices,
         analytics: AnalyticsServices,
         sync: SyncEngine,
@@ -92,6 +102,7 @@ public final class LumenServices: Sendable {
         self.errors = errors
         self.notifications = notifications
         self.organization = organization
+        self.knowledge = knowledge
         self.search = search
         self.analytics = analytics
         self.sync = sync

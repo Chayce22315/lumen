@@ -9,6 +9,7 @@ import LumenSync
 import LumenPlugins
 import LumenAnalytics
 import LumenWidgetData
+import LumenKnowledge
 
 /// Builds the object graph and brings Lumen up.
 public enum LumenBootstrap {
@@ -23,6 +24,7 @@ public enum LumenBootstrap {
             SettingsStore.schema,
             NotificationService.schema,
             OrganizationSchema.schema,
+            KnowledgeSchema.schema,
             SearchIndex.schema,
             SyncEngine.schema,
             PluginHost.schema,
@@ -68,6 +70,25 @@ public enum LumenBootstrap {
         let reminders = ReminderCoordinator(tasks: tasks, calendars: calendars, notifications: notifications, events: events, timeSource: timeSource, calendar: calendar, logger: logging.logger("reminders"))
         let organization = OrganizationServices(tasks: tasks, projects: projects, calendars: calendars, agenda: agenda, reminders: reminders)
 
+        // Knowledge
+        let storage: any DocumentStorage
+        if let provided = platform.documentStorage {
+            storage = provided
+        } else if location == .inMemory {
+            storage = InMemoryDocumentStorage()
+        } else {
+            storage = FileSystemDocumentStorage(directory: configuration.documentsDirectory)
+        }
+        let notes = NoteService(database: database, events: events, timeSource: timeSource, logger: logging.logger("notes"))
+        let collections = CollectionService(database: database, events: events, timeSource: timeSource, logger: logging.logger("collections"))
+        let documents = DocumentService(database: database, storage: storage, events: events, timeSource: timeSource, logger: logging.logger("documents"))
+        let knowledge = KnowledgeServices(
+            notes: notes,
+            collections: collections,
+            documents: documents,
+            tags: TagService(database: database, events: events, timeSource: timeSource, logger: logging.logger("tags"))
+        )
+
         // Search
         let index = SearchIndex(database: database, timeSource: timeSource)
         let indexer = SearchIndexer(index: index, events: events, logger: logging.logger("search"))
@@ -91,7 +112,7 @@ public enum LumenBootstrap {
         let sync = SyncEngine(
             database: database,
             transport: platform.syncTransport,
-            handlers: OrganizationIntegration.syncHandlers(),
+            handlers: OrganizationIntegration.syncHandlers() + KnowledgeIntegration.syncHandlers(),
             events: events,
             timeSource: timeSource,
             logger: logging.logger("sync")
@@ -110,6 +131,7 @@ public enum LumenBootstrap {
         )
         try await host.register(CoreFeature(), isBuiltIn: true)
         try await host.register(OrganizationFeature(tasks: tasks, projects: projects, calendars: calendars), isBuiltIn: true)
+        try await host.register(KnowledgeFeature(notes: notes, collections: collections, documents: documents, timeSource: timeSource, calendar: calendar), isBuiltIn: true)
         for plugin in platform.plugins {
             do {
                 try await host.register(plugin, isBuiltIn: false)
@@ -119,7 +141,7 @@ public enum LumenBootstrap {
         }
 
         let home = HomeService(
-            tasks: tasks, projects: projects, agenda: agenda, notifications: notifications, analytics: analytics,
+            tasks: tasks, projects: projects, agenda: agenda, notes: notes, notifications: notifications, analytics: analytics,
             sync: sync, index: index, settings: settings, timeSource: timeSource, calendar: calendar
         )
         let widgets = WidgetSnapshotPublisher(
@@ -131,7 +153,7 @@ public enum LumenBootstrap {
         let services = LumenServices(
             configuration: configuration, timeSource: timeSource, calendar: calendar, logging: logging, recentLogs: recentLogs,
             database: database, events: events, settings: settings, secrets: platform.secrets, errors: errors,
-            notifications: notifications, organization: organization, search: search, analytics: analytics, sync: sync,
+            notifications: notifications, organization: organization, knowledge: knowledge, search: search, analytics: analytics, sync: sync,
             plugins: PluginServices(host: host, extensions: extensions), commands: commandCenter, home: home, widgets: widgets
         )
         logger.info("Services created", metadata: ["flavor": configuration.flavor.rawValue])

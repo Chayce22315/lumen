@@ -6,8 +6,18 @@ import LumenSearch
 public enum CommandAction: Sendable {
     /// Navigates; the interface's router handles it.
     case navigate(AppDestination)
-    /// Runs work and returns an optional confirmation message for a toast.
-    case perform(@Sendable () async throws -> String?)
+    /// Runs work; the result can confirm it (a toast) and/or lead somewhere.
+    case perform(@Sendable () async throws -> CommandResult)
+}
+
+public struct CommandResult: Sendable, Hashable {
+    public let message: String?
+    public let destination: AppDestination?
+
+    public init(message: String? = nil, destination: AppDestination? = nil) {
+        self.message = message
+        self.destination = destination
+    }
 }
 
 /// A palette command together with what it does.

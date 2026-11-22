@@ -90,7 +90,8 @@ struct OrganizationFeature: LumenPlugin {
                     for task in overdue {
                         _ = try await tasks.update(task.id, TaskChanges(dueDate: .some(today)))
                     }
-                    return overdue.isEmpty ? "Nothing is overdue." : (overdue.count == 1 ? "Moved 1 task to today." : "Moved \(overdue.count) tasks to today.")
+                    let message = overdue.isEmpty ? "Nothing is overdue." : (overdue.count == 1 ? "Moved 1 task to today." : "Moved \(overdue.count) tasks to today.")
+                    return CommandResult(message: message, destination: overdue.isEmpty ? nil : .tasks(.today))
                 }
             ),
             to: LumenExtensionPoints.commands
