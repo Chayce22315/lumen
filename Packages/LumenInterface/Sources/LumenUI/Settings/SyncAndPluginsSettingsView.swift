@@ -26,7 +26,7 @@ struct SyncSettingsView: View {
                 }
             } footer: {
                 Text(settings.syncStatus?.state == .notConfigured
-                    ? "Everything is stored on this device. Sync keeps your devices in step once a sync service is connected; Lumen records every change so nothing is lost when you connect one."
+                    ? "Everything is stored on this device. iCloud sync turns on in builds configured with an iCloud container. Lumen records every change, so nothing is lost when it does."
                     : "Changes made offline are kept and sent when you're back online.")
             }
             if !settings.conflicts.isEmpty {

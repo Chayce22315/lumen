@@ -22,12 +22,19 @@ public final class AppModel {
     public var toast: String?
 
     private let makeServices: @Sendable () async throws -> LumenServices
+    private let makeRuntime: @Sendable (LumenServices) async throws -> LumenRuntime
     private var runtime: LumenRuntime?
     private let issueObservation = ObservationHandle()
     private var pendingURL: URL?
 
-    public init(makeServices: @escaping @Sendable () async throws -> LumenServices) {
+    /// - Parameter makeRuntime: the runtime for the services. The app passes its process-wide
+    ///   runtime, shared with background refresh, so engines are started once.
+    public init(
+        makeServices: @escaping @Sendable () async throws -> LumenServices,
+        makeRuntime: @escaping @Sendable (LumenServices) async throws -> LumenRuntime = { LumenRuntime(services: $0) }
+    ) {
         self.makeServices = makeServices
+        self.makeRuntime = makeRuntime
     }
 
     public var services: LumenServices? {
@@ -41,7 +48,7 @@ public final class AppModel {
         phase = .launching
         do {
             let services = try await makeServices()
-            let runtime = LumenRuntime(services: services)
+            let runtime = try await makeRuntime(services)
             await runtime.start()
             self.runtime = runtime
             observeIssues(services.errors)

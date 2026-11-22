@@ -3,6 +3,7 @@ import LumenFoundation
 import LumenCore
 import LumenNotifications
 import LumenApplication
+import LumenSync
 import LumenWidgetData
 #if canImport(WidgetKit)
 @preconcurrency import WidgetKit
@@ -31,11 +32,36 @@ public enum LivePlatform {
         )
     }
 
+    /// Info.plist key naming the build's iCloud container (for example `iCloud.app.lumen`).
+    /// Missing or empty: no sync transport, and Settings explains that sync isn't set up.
+    public static let cloudKitContainerKey = "LumenCloudKitContainerIdentifier"
+
+    /// The iCloud container this build syncs through, if it has one.
+    public static func cloudKitContainerIdentifier(bundle: Bundle = .main) -> String? {
+        guard let value = bundle.object(forInfoDictionaryKey: cloudKitContainerKey) as? String else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// CloudKit sync, only for a build configured with an iCloud container: creating a
+    /// `CKContainer` without the matching entitlement terminates the app, so nothing CloudKit is
+    /// touched otherwise.
+    static func syncTransport(for configuration: AppConfiguration, bundle: Bundle = .main) -> (any SyncTransport)? {
+        #if canImport(CloudKit)
+        guard let identifier = cloudKitContainerIdentifier(bundle: bundle) else { return nil }
+        let logging = LoggingSystem(sinks: [UnifiedLogSink(subsystem: configuration.logSubsystem)])
+        return CloudSyncTransport(database: CloudKitRecordDatabase(containerIdentifier: identifier), logger: logging.logger("sync.cloudkit"))
+        #else
+        return nil
+        #endif
+    }
+
     public static func services(for configuration: AppConfiguration) -> PlatformServices {
         PlatformServices(
             secrets: KeychainSecretStore(service: configuration.keychainService),
             notificationScheduler: UserNotificationScheduler(),
             externalCalendar: calendarSource,
+            syncTransport: syncTransport(for: configuration),
             additionalLogSinks: [UnifiedLogSink(subsystem: configuration.logSubsystem)],
             reloadWidgets: {
                 #if canImport(WidgetKit)
