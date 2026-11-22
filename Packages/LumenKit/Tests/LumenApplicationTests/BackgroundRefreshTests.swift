@@ -6,6 +6,8 @@ import LumenCore
 import LumenKnowledge
 import LumenAutomation
 import LumenSync
+import LumenOrganization
+import LumenWidgetData
 import LumenApplication
 import LumenTestSupport
 
@@ -61,6 +63,24 @@ private struct ColdApp {
 
 @Suite("Background refresh")
 struct BackgroundRefreshTests {
+    @Test("a refresh of a running app completes tasks checked on the widget before syncing")
+    func widgetActions() async throws {
+        let clock = ManualTimeSource()
+        let remote = MemoryRemote()
+        let app = try await ColdApp.make(remote: remote, clock: clock)
+        await app.runtime.start()
+        let task = try await app.services.organization.tasks.create(TaskDraft(title: "Stretch", dueDate: app.services.today))
+        try app.services.widgets.actionQueue.enqueue(WidgetAction(kind: .completeTask, taskID: task.id.rawValue, requestedAt: clock.now()))
+
+        let report = await app.runtime.performBackgroundRefresh()
+        #expect(report.completed.contains(.widgetActions))
+        #expect(try await app.services.organization.tasks.task(task.id)?.status == .done)
+        #expect(try app.services.widgets.actionQueue.pending().isEmpty)
+        // The completion went out in the same refresh's sync pass.
+        #expect(remote.envelopes.contains { $0.entity.id == task.id.rawValue && $0.state.fields["status"]?.value == .string("done") })
+        await app.tearDown()
+    }
+
     @Test("a background launch starts the runtime, runs due automations and syncs what they did")
     func backgroundLaunch() async throws {
         let clock = ManualTimeSource()
