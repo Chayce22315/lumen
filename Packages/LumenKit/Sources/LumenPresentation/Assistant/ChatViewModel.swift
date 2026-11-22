@@ -3,7 +3,18 @@ import Observation
 import LumenFoundation
 import LumenCore
 import LumenIntelligence
+import LumenSearch
 import LumenApplication
+
+/// A conversation found by searching, with the matched words emphasised.
+public struct ConversationSearchRow: Sendable, Hashable, Identifiable {
+    public let conversation: Conversation
+    public let titleHighlights: [HighlightRange]
+    /// An excerpt of the best-matching message.
+    public let snippet: Snippet?
+
+    public var id: Conversation.ID { conversation.id }
+}
 
 /// The list of conversations.
 @MainActor
@@ -13,19 +24,69 @@ public final class ConversationsViewModel {
     public var showsArchived = false {
         didSet { Task { await load() } }
     }
+    /// Text in the search field. Results follow it after a short pause.
+    public var searchQuery = "" {
+        didSet { scheduleSearch() }
+    }
+    /// Search results; `nil` while the search field is empty.
+    public private(set) var searchResults: [ConversationSearchRow]?
 
     private let services: LumenServices
+    private let debounce: TimeInterval
     private let observation = ObservationHandle()
+    private let pendingSearch = ObservationHandle()
 
-    public init(services: LumenServices) {
+    public init(services: LumenServices, debounce: TimeInterval = 0.2) {
         self.services = services
+        self.debounce = debounce
     }
+
+    public var isSearching: Bool { searchQuery.nonBlank != nil }
 
     public func start() async {
         await load()
         services.events.observe(EventFilter(modules: ["intelligence", "sync"], entityKinds: [.conversation, .chatMessage]), into: observation) { [weak self] in
-            await self?.load()
+            guard let self else { return }
+            await self.load()
+            if self.isSearching { await self.search() }
         }
+    }
+
+    /// Runs the current query now: titles and message text, every term matched as a prefix.
+    public func search() async {
+        let query = searchQuery
+        guard query.nonBlank != nil else {
+            searchResults = nil
+            return
+        }
+        do {
+            let hits = try await services.intelligence.conversations.search(query)
+            guard query == searchQuery else { return } // a newer query is on its way
+            let tokens = FTSQueryBuilder.tokens(for: query)
+            searchResults = hits.map { hit in
+                ConversationSearchRow(
+                    conversation: hit.conversation,
+                    titleHighlights: SnippetBuilder.highlights(in: hit.conversation.displayTitle, tokens: tokens),
+                    snippet: hit.matchedText.flatMap { SnippetBuilder.snippet(for: $0, tokens: tokens) }
+                )
+            }
+        } catch {
+            services.errors.report(error, context: "Searching conversations")
+        }
+    }
+
+    private func scheduleSearch() {
+        guard isSearching else {
+            pendingSearch.replace(with: Task {})
+            searchResults = nil
+            return
+        }
+        let delay = UInt64(max(0, debounce) * 1_000_000_000)
+        pendingSearch.replace(with: Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: delay) // cancellation (a newer keystroke) ends the wait early
+            guard !Task.isCancelled else { return }
+            await self?.search()
+        })
     }
 
     public func load() async {
@@ -86,6 +147,17 @@ public final class ChatViewModel {
     public private(set) var pendingApproval: ApprovalRequest?
     public private(set) var isConfigured = true
     public var draft = ""
+    /// The conversation, for its model override.
+    public private(set) var conversation: Conversation?
+    /// The models this device can answer with (configured providers only).
+    public private(set) var modelChoices = ModelChoices()
+    /// The model chosen in Settings, used when the conversation has no override.
+    public private(set) var defaultSelection: ModelSelection?
+    /// Library items attached to the next message.
+    public private(set) var attachments: [AttachmentCandidate] = []
+
+    /// Matches `AssistantEngine.Configuration.maxAttachmentsPerMessage`.
+    public static let maximumAttachments = 10
 
     private let services: LumenServices
     private let reply = ObservationHandle()
@@ -108,6 +180,66 @@ public final class ChatViewModel {
                 self?.pendingApproval = request
             }
         })
+        await loadConversation()
+        await loadModels()
+    }
+
+    // MARK: - Model
+
+    /// The model answering in this conversation: its override, else the default.
+    public var activeSelection: ModelSelection? { conversation?.selection ?? defaultSelection }
+
+    /// Whether the conversation follows the Settings default.
+    public var followsDefaultModel: Bool { conversation?.selection == nil }
+
+    /// Display name of the active model.
+    public var activeModelName: String? { activeSelection.map(displayName(for:)) }
+
+    /// Display name of the default model, for the "Default" option.
+    public var defaultModelName: String? { defaultSelection.map(displayName(for:)) }
+
+    /// The picker is offered only when at least one model can actually answer.
+    public var canChooseModel: Bool { !modelChoices.isEmpty }
+
+    public func displayName(for selection: ModelSelection) -> String {
+        modelChoices.descriptor(for: selection)?.displayName ?? selection.modelID
+    }
+
+    public func loadModels(refresh: Bool = false) async {
+        defaultSelection = await services.settings.value(AssistantSettings.defaultModel)
+        modelChoices = await services.intelligence.assistant.modelChoices(refresh: refresh)
+    }
+
+    /// Sets this conversation's model; `nil` returns it to the Settings default. Only models
+    /// offered in `modelChoices` are accepted.
+    public func chooseModel(_ selection: ModelSelection?) async {
+        if let selection, !modelChoices.contains(selection) { return }
+        do {
+            conversation = try await services.intelligence.conversations.setSelection(selection, for: conversationID)
+        } catch {
+            services.errors.report(error, context: "Choosing a model")
+        }
+    }
+
+    private func loadConversation() async {
+        do {
+            conversation = try await services.intelligence.conversations.conversation(conversationID)
+        } catch {
+            services.errors.report(error, context: "Loading the conversation")
+        }
+    }
+
+    // MARK: - Attachments
+
+    public var canAttachMore: Bool { attachments.count < Self.maximumAttachments }
+
+    public func attach(_ candidate: AttachmentCandidate) {
+        guard canAttachMore, !attachments.contains(where: { $0.reference == candidate.reference }) else { return }
+        attachments.append(candidate)
+    }
+
+    public func removeAttachment(_ reference: EntityReference) {
+        attachments.removeAll { $0.reference == reference }
     }
 
     public func reload() async {
@@ -118,13 +250,25 @@ public final class ChatViewModel {
         }
     }
 
+    /// Sends the draft with its attachments. When the turn fails before the message was stored
+    /// (an attachment was deleted meanwhile, no model is set up), the draft and attachments are
+    /// put back so nothing the user typed is lost.
     public func send() async {
         guard canSend else { return }
         let text = draft
+        let attached = attachments
+        let storedBefore = messages.count
         draft = ""
+        attachments = []
         failure = nil
         streamingText = ""
-        let stream = await services.intelligence.assistant.send(text: text, in: conversationID)
+        defer {
+            if failure != nil, messages.count == storedBefore {
+                if draft.isEmpty { draft = text }
+                if attachments.isEmpty { attachments = attached }
+            }
+        }
+        let stream = await services.intelligence.assistant.send(text: text, attachments: attached.map(\.reference), in: conversationID)
         await reload()
         let finished = Task { @MainActor [weak self] in
             do {
