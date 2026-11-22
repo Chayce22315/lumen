@@ -7,6 +7,8 @@ extension EntityKind {
     public static let project: EntityKind = "project"
     public static let calendarEvent: EntityKind = "calendar-event"
     public static let calendar: EntityKind = "calendar"
+    /// An event in the system calendar store (see `SystemCalendarEventReference`).
+    public static let systemCalendarEvent: EntityKind = "system-calendar-event"
 }
 
 /// Event names published by the organization engine. Persisted by analytics and referenced by
@@ -32,10 +34,15 @@ public enum OrganizationEvent {
     public static let calendarUpdated: EventName = "organization.calendar.updated"
     public static let calendarDeleted: EventName = "organization.calendar.deleted"
 
+    /// An event in a system calendar was created or changed from Lumen.
+    public static let systemEventSaved: EventName = "organization.systemEvent.saved"
+    public static let systemEventDeleted: EventName = "organization.systemEvent.deleted"
+
     public static let all: [EventName] = [
         taskCreated, taskUpdated, taskCompleted, taskReopened, taskCancelled, taskDeleted,
         projectCreated, projectUpdated, projectCompleted, projectDeleted,
         eventCreated, eventUpdated, eventDeleted,
         calendarCreated, calendarUpdated, calendarDeleted,
+        systemEventSaved, systemEventDeleted,
     ]
 }

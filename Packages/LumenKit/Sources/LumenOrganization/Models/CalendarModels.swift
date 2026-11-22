@@ -148,9 +148,22 @@ public struct EventOccurrence: Sendable, Hashable, Identifiable {
     }
 }
 
-/// A read-only calendar source outside Lumen (the system calendar store on Apple platforms).
+/// A calendar source outside Lumen (the system calendar store on Apple platforms). Reading is
+/// required; writing has read-only defaults (see `ExternalCalendarModels.swift`).
 public protocol ExternalCalendarSource: Sendable {
     /// Whether the user granted access. Sources that are not authorized return no events.
     func isAuthorized() async -> Bool
     func occurrences(from start: Date, to end: Date) async throws -> [EventOccurrence]
+
+    func authorization() async -> ExternalCalendarAccess
+    /// Asks the user for access; returns whether it was granted.
+    func requestAuthorization() async throws -> Bool
+    /// Every calendar in the store, writable or not.
+    func calendars() async throws -> [ExternalCalendar]
+    /// The event (for a recurring event: the series), or `nil` when it no longer exists.
+    func event(identifier: String) async throws -> ExternalEventRecord?
+    /// Creates or replaces an event (a recurring event's whole series); returns its identifier.
+    func save(_ event: ExternalEventRecord) async throws -> String
+    /// Deletes an event (a recurring event's whole series).
+    func deleteEvent(identifier: String) async throws
 }

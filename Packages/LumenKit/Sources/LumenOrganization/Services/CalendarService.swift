@@ -35,14 +35,15 @@ public struct EventDraft: Sendable, Hashable {
     }
 }
 
-/// Calendars and events, merged with the read-only external calendar source.
+/// Calendars and events, merged with the external (system) calendar source. Writing to system
+/// calendars lives in `CalendarService+System.swift`.
 public final class CalendarService: Sendable {
     private let database: Database
-    private let events: EventBus
-    private let timeSource: any TimeSource
-    private let calendar: Calendar
-    private let external: (any ExternalCalendarSource)?
-    private let logger: Logger
+    let events: EventBus
+    let timeSource: any TimeSource
+    let calendar: Calendar
+    let external: (any ExternalCalendarSource)?
+    let logger: Logger
     private let repository = CalendarRepository()
 
     public init(
