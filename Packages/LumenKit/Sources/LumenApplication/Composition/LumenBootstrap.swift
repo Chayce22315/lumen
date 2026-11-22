@@ -85,7 +85,10 @@ public enum LumenBootstrap {
         }
         let notes = NoteService(database: database, events: events, timeSource: timeSource, logger: logging.logger("notes"))
         let collections = CollectionService(database: database, events: events, timeSource: timeSource, logger: logging.logger("collections"))
-        let documents = DocumentService(database: database, storage: storage, events: events, timeSource: timeSource, logger: logging.logger("documents"))
+        let documents = DocumentService(
+            database: database, storage: storage, extractors: platform.documentTextExtractors,
+            events: events, timeSource: timeSource, logger: logging.logger("documents")
+        )
         let knowledge = KnowledgeServices(
             notes: notes,
             collections: collections,
@@ -130,6 +133,7 @@ public enum LumenBootstrap {
             providers: providers, catalog: models, tools: tools, memory: memory,
             approvalHandler: approvals,
             contextProvider: WorkspaceContextProvider(agenda: agenda, projects: projects),
+            attachmentResolver: KnowledgeAttachmentResolver(notes: notes, documents: documents),
             timeSource: timeSource, calendar: calendar, logger: logging.logger("assistant")
         )
         let conversations = ConversationService(database: database, events: events, timeSource: timeSource, logger: logging.logger("conversations"))
