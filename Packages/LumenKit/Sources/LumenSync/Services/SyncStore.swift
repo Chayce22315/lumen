@@ -26,6 +26,8 @@ struct SyncStore: Sendable {
     static let cursorKey = "cursor"
     static let pushedSequenceKey = "pushed_sequence"
     static let lastSuccessKey = "last_success"
+    /// Set when the remote store was reset and every known state must be sent again.
+    static let reuploadKey = "reupload_required"
 
     func value(_ key: String, in db: DatabaseConnection) throws -> String? {
         try db.scalar("SELECT value FROM sync_state WHERE key = ?", [key])
@@ -52,6 +54,24 @@ struct SyncStore: Sendable {
             [entity.kind, entity.id]
         ) else { return nil }
         return try JSONCoding.decode(ShadowRecord.self, from: text)
+    }
+
+    /// Shadows in (kind, id) order after `position`, for paging through all of them.
+    func shadows(after position: EntityReference?, limit: Int, in db: DatabaseConnection) throws -> [(entity: EntityReference, record: ShadowRecord)] {
+        let rows: [Row]
+        if let position {
+            rows = try db.query(
+                "SELECT * FROM sync_shadows WHERE (entity_kind, entity_id) > (?, ?) ORDER BY entity_kind, entity_id LIMIT ?",
+                [position.kind, position.id, max(1, limit)]
+            )
+        } else {
+            rows = try db.query("SELECT * FROM sync_shadows ORDER BY entity_kind, entity_id LIMIT ?", [max(1, limit)])
+        }
+        return try rows.map { row in
+            let entity = EntityReference(kind: try row.get("entity_kind"), id: try row.get("entity_id", as: UUID.self))
+            let text: String = try row.get("state")
+            return (entity, try JSONCoding.decode(ShadowRecord.self, from: text))
+        }
     }
 
     func saveShadow(_ record: ShadowRecord, of entity: EntityReference, in db: DatabaseConnection) throws {

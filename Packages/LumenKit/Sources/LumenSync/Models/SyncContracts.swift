@@ -10,6 +10,24 @@ public protocol SyncTransport: Sendable {
     func push(_ envelopes: [SyncEnvelope]) async throws
     /// Changes after `cursor` (`nil` = from the beginning), oldest first.
     func pull(after cursor: String?, limit: Int) async throws -> PullResult
+    /// Called at the start of every run, before pushing. `hasSynchronizedBefore` is true when this
+    /// device has pulled from the remote before. A transport whose remote store has been emptied
+    /// since (for example, the user deleted their iCloud data) throws `.remoteReset`; the engine
+    /// then re-sends everything it knows.
+    func prepare(hasSynchronizedBefore: Bool) async throws
+}
+
+extension SyncTransport {
+    public func prepare(hasSynchronizedBefore: Bool) async throws {}
+}
+
+/// Carries document files, which are not part of the change log. Files are content-addressed by
+/// their SHA-256, so uploading the same file twice is a no-op.
+public protocol BlobTransport: Sendable {
+    func containsBlob(sha256: String) async throws -> Bool
+    func uploadBlob(_ data: Data, sha256: String) async throws
+    /// The file's bytes, or `nil` when no device has uploaded it (yet).
+    func downloadBlob(sha256: String) async throws -> Data?
 }
 
 public enum SyncTransportError: Error, Sendable, Equatable {
@@ -21,6 +39,9 @@ public enum SyncTransportError: Error, Sendable, Equatable {
     case unavailable(retryAfter: TimeInterval?)
     /// The server rejected the request; not retried.
     case rejected(String)
+    /// The remote store lost what this device synchronized before (it was deleted or reset).
+    /// The engine re-sends every entity it knows and reads the remote from the beginning.
+    case remoteReset
 }
 
 /// Reads and writes one entity kind on behalf of the sync engine. Implemented in the application

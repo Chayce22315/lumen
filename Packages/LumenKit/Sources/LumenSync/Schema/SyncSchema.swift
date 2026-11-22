@@ -38,5 +38,11 @@ public enum SyncSchema {
             );
             CREATE INDEX sync_runs_started ON sync_runs (started_at DESC);
             """),
+        .sql("0002_blob_uploads", """
+            CREATE TABLE sync_blobs (
+                sha256 TEXT PRIMARY KEY NOT NULL,
+                uploaded_at REAL NOT NULL
+            );
+            """),
     ])
 }

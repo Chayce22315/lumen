@@ -90,19 +90,23 @@ struct Replica {
         clock: ManualTimeSource = ManualTimeSource(),
         beforePull: (@Sendable () async throws -> Void)? = nil
     ) async throws -> Replica {
+        try await make(transport: server.map { ServerTransport(server: $0, beforePull: beforePull) }, clock: clock)
+    }
+
+    static func make(transport: (any SyncTransport)?, clock: ManualTimeSource = ManualTimeSource(), batchSize: Int = 2) async throws -> Replica {
         let logs = LogCapture()
         let database = try Database(location: .inMemory, timeSource: clock)
         try await database.migrate([SyncEngine.schema, memoSchema])
         let events = EventBus()
         let engine = SyncEngine(
             database: database,
-            transport: server.map { ServerTransport(server: $0, beforePull: beforePull) },
+            transport: transport,
             handlers: [MemoHandler()],
             events: events,
             timeSource: clock,
             logger: logs.makeSystem().logger("sync"),
             retryPolicy: RetryPolicy(maxAttempts: 3, initialDelay: 1, jitter: 0),
-            batchSize: 2,
+            batchSize: batchSize,
             sleep: { _ in }
         )
         return Replica(database: database, clock: clock, engine: engine, events: events, logs: logs)

@@ -163,8 +163,13 @@ public actor SyncEngine {
         var conflicts = 0
         let run: SyncRun
         do {
-            pushed = try await pushPending(through: transport)
-            (pulled, conflicts) = try await pullRemote(through: transport)
+            do {
+                try await runPasses(through: transport, pushed: &pushed, pulled: &pulled, conflicts: &conflicts)
+            } catch SyncTransportError.remoteReset {
+                logger.notice("The remote store was reset; re-sending this device's data")
+                try await requireReupload()
+                try await runPasses(through: transport, pushed: &pushed, pulled: &pulled, conflicts: &conflicts)
+            }
             let finished = timeSource.now()
             let store = self.store
             try await database.write { db in
@@ -207,6 +212,63 @@ public actor SyncEngine {
             occurredAt: run.finishedAt
         ))
         return run
+    }
+
+    /// Prepares the transport, re-sends everything after a remote reset, pushes pending local
+    /// changes and pulls remote ones.
+    private func runPasses(through transport: any SyncTransport, pushed: inout Int, pulled: inout Int, conflicts: inout Int) async throws {
+        let store = self.store
+        let cursor: String? = try await database.read { db in try store.value(SyncStore.cursorKey, in: db) }
+        try await withRetry(policy: retryPolicy, classify: Self.classify, sleep: sleep) {
+            try await transport.prepare(hasSynchronizedBefore: cursor != nil)
+        }
+        pushed += try await reuploadIfRequired(through: transport)
+        pushed += try await pushPending(through: transport)
+        let result = try await pullRemote(through: transport)
+        pulled += result.pulled
+        conflicts += result.conflicts
+    }
+
+    // MARK: - Re-upload after a remote reset
+
+    private func requireReupload() async throws {
+        let store = self.store
+        try await database.write { db in
+            try store.setValue(nil, for: SyncStore.cursorKey, in: db)
+            try store.setValue("1", for: SyncStore.reuploadKey, in: db)
+        }
+    }
+
+    /// Sends the last synchronized state of every entity (which includes other devices' writes
+    /// with their original timestamps), so the remote store is rebuilt from this device.
+    private func reuploadIfRequired(through transport: any SyncTransport) async throws -> Int {
+        let store = self.store
+        let required = try await database.read { db in try store.value(SyncStore.reuploadKey, in: db) } != nil
+        guard required else { return 0 }
+        let kinds = Set(handlers.keys)
+        let replica = database.replicaID
+        let batchSize = self.batchSize
+        var position: EntityReference?
+        var total = 0
+        while true {
+            let after = position
+            let page = try await database.read { db in try store.shadows(after: after, limit: batchSize, in: db) }
+            guard let last = page.last else { break }
+            let envelopes = page
+                .filter { kinds.contains($0.entity.kind) && !$0.record.state.isEmpty }
+                .map { SyncEnvelope(entity: $0.entity, state: $0.record.state, origin: replica) }
+            if !envelopes.isEmpty {
+                try await withRetry(policy: retryPolicy, classify: Self.classify, sleep: sleep) {
+                    try await transport.push(envelopes)
+                }
+            }
+            total += envelopes.count
+            position = last.entity
+            if page.count < batchSize { break }
+        }
+        try await database.write { db in try store.setValue(nil, for: SyncStore.reuploadKey, in: db) }
+        logger.notice("Re-sent synchronized state", metadata: ["entities": String(total)])
+        return total
     }
 
     // MARK: - Push
@@ -391,7 +453,7 @@ public actor SyncEngine {
     static func classify(_ error: any Error) -> RetryDecision {
         guard let error = error as? SyncTransportError else { return .retry }
         switch error {
-        case .offline, .unauthorized, .rejected: return .fail
+        case .offline, .unauthorized, .rejected, .remoteReset: return .fail
         case .unavailable(let retryAfter): return retryAfter.map(RetryDecision.retryAfter) ?? .retry
         }
     }
@@ -408,6 +470,8 @@ extension SyncTransportError: PresentableError {
             return ErrorPresentation(title: "Sync unavailable", message: "The sync service is temporarily unavailable. Lumen will try again.", isRetryable: true)
         case .rejected(let reason):
             return ErrorPresentation(title: "Sync rejected", message: reason)
+        case .remoteReset:
+            return ErrorPresentation(title: "Sync is being restored", message: "The synced copy of your data was removed. Lumen is uploading this device's data again.", isRetryable: true)
         }
     }
 }
