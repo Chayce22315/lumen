@@ -84,3 +84,14 @@ public struct SearchHistoryEntry: Sendable, Hashable, Identifiable {
 
     public var id: String { query }
 }
+
+/// The display summary the index holds for an entity.
+public struct IndexedSummary: Sendable, Hashable {
+    public let title: String
+    public let subtitle: String
+
+    public init(title: String, subtitle: String) {
+        self.title = title
+        self.subtitle = subtitle
+    }
+}

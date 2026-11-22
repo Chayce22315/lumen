@@ -1,0 +1,147 @@
+import Foundation
+import LumenFoundation
+import LumenPersistence
+import LumenCore
+import LumenNotifications
+import LumenOrganization
+import LumenSearch
+import LumenSync
+import LumenPlugins
+import LumenAnalytics
+import LumenWidgetData
+
+/// Builds the object graph and brings Lumen up.
+public enum LumenBootstrap {
+    /// Settings key recording which search index format was last built, so the index is rebuilt
+    /// after an update changes what is indexed.
+    static let searchIndexVersionKey = SettingKey("search.indexVersion", default: 0)
+    static let currentSearchIndexVersion = 1
+
+    /// Every schema, in dependency order.
+    static var schemas: [DatabaseSchema] {
+        [
+            SettingsStore.schema,
+            NotificationService.schema,
+            OrganizationSchema.schema,
+            SearchIndex.schema,
+            SyncEngine.schema,
+            PluginHost.schema,
+            AnalyticsService.schema,
+        ]
+    }
+
+    public static func make(
+        configuration: AppConfiguration,
+        platform: PlatformServices,
+        timeSource: any TimeSource = SystemTimeSource(),
+        calendar: Calendar = .current
+    ) async throws -> LumenServices {
+        // Logging first, so every later step can report.
+        let recentLogs = RingBufferLogSink(capacity: 2_000)
+        var sinks: [any LogSink] = [recentLogs]
+        sinks.append(contentsOf: platform.additionalLogSinks)
+        let minimumLevel: LogLevel = configuration.isEnabled(.verboseLogging) || configuration.flavor == .debug ? .debug : .info
+        let logging = LoggingSystem(sinks: sinks, minimumLevel: minimumLevel, timeSource: timeSource)
+        let logger = logging.logger("bootstrap")
+
+        let location: DatabaseLocation
+        switch configuration.flavor {
+        case .debug, .release: location = .file(configuration.databaseURL)
+        case .test, .preview: location = .inMemory
+        }
+        let database = try Database(location: location, timeSource: timeSource, logger: logging.logger("database"))
+        try await database.migrate(schemas)
+
+        let events = EventBus()
+        let settings = SettingsStore(database: database, events: events, timeSource: timeSource, logger: logging.logger("settings"))
+        let errors = ErrorReporter(logger: logging.logger("errors"), timeSource: timeSource)
+        let notifications = NotificationService(
+            database: database, settings: settings, scheduler: platform.notificationScheduler, events: events,
+            timeSource: timeSource, calendar: calendar, logger: logging.logger("notifications")
+        )
+
+        // Organization
+        let tasks = TaskService(database: database, events: events, timeSource: timeSource, calendar: calendar, logger: logging.logger("tasks"))
+        let projects = ProjectService(database: database, events: events, timeSource: timeSource, calendar: calendar, logger: logging.logger("projects"))
+        let calendars = CalendarService(database: database, events: events, timeSource: timeSource, calendar: calendar, external: platform.externalCalendar, logger: logging.logger("calendar"))
+        let agenda = AgendaService(tasks: tasks, calendars: calendars, timeSource: timeSource, calendar: calendar)
+        let reminders = ReminderCoordinator(tasks: tasks, calendars: calendars, notifications: notifications, events: events, timeSource: timeSource, calendar: calendar, logger: logging.logger("reminders"))
+        let organization = OrganizationServices(tasks: tasks, projects: projects, calendars: calendars, agenda: agenda, reminders: reminders)
+
+        // Search
+        let index = SearchIndex(database: database, timeSource: timeSource)
+        let indexer = SearchIndexer(index: index, events: events, logger: logging.logger("search"))
+        let commandCenter = CommandCenter(registry: CommandRegistry())
+        let search = SearchServices(index: index, indexer: indexer, service: SearchService(index: index, commands: commandCenter.registry, database: database, timeSource: timeSource))
+
+        // Analytics
+        let signals = ProductivitySignals(
+            completionEvents: [OrganizationEvent.taskCompleted],
+            creationEvents: [OrganizationEvent.taskCreated],
+            moduleDisplayNames: ["organization": "Tasks", "knowledge": "Notes", "intelligence": "Assistant", "automation": "Automations"],
+            unit: WorkUnit(singular: "task", plural: "tasks")
+        )
+        let analytics = AnalyticsServices(
+            collector: AnalyticsCollector(database: database, events: events, settings: settings, timeSource: timeSource, calendar: calendar, logger: logging.logger("analytics")),
+            service: AnalyticsService(database: database, settings: settings, events: events, timeSource: timeSource, calendar: calendar, logger: logging.logger("analytics")),
+            signals: signals
+        )
+
+        // Sync
+        let sync = SyncEngine(
+            database: database,
+            transport: platform.syncTransport,
+            handlers: OrganizationIntegration.syncHandlers(),
+            events: events,
+            timeSource: timeSource,
+            logger: logging.logger("sync")
+        )
+
+        // Plugins: built-in features go through the same host as third-party plugins.
+        let extensions = ExtensionRegistry()
+        let host = PluginHost(
+            database: database,
+            registry: extensions,
+            services: BuiltInServiceProvider(),
+            events: events,
+            timeSource: timeSource,
+            logging: logging,
+            allowsThirdParty: configuration.isEnabled(.thirdPartyPlugins)
+        )
+        try await host.register(CoreFeature(), isBuiltIn: true)
+        try await host.register(OrganizationFeature(tasks: tasks, projects: projects, calendars: calendars), isBuiltIn: true)
+        for plugin in platform.plugins {
+            do {
+                try await host.register(plugin, isBuiltIn: false)
+            } catch {
+                errors.report(error, context: "Registering plugin \(plugin.manifest.id)")
+            }
+        }
+
+        let home = HomeService(
+            tasks: tasks, projects: projects, agenda: agenda, notifications: notifications, analytics: analytics,
+            sync: sync, index: index, settings: settings, timeSource: timeSource, calendar: calendar
+        )
+        let widgets = WidgetSnapshotPublisher(
+            store: WidgetSnapshotStore(url: configuration.widgetSnapshotURL),
+            tasks: tasks, projects: projects, agenda: agenda, events: events,
+            timeSource: timeSource, calendar: calendar, reload: platform.reloadWidgets, logger: logging.logger("widgets")
+        )
+
+        let services = LumenServices(
+            configuration: configuration, timeSource: timeSource, calendar: calendar, logging: logging, recentLogs: recentLogs,
+            database: database, events: events, settings: settings, secrets: platform.secrets, errors: errors,
+            notifications: notifications, organization: organization, search: search, analytics: analytics, sync: sync,
+            plugins: PluginServices(host: host, extensions: extensions), commands: commandCenter, home: home, widgets: widgets
+        )
+        logger.info("Services created", metadata: ["flavor": configuration.flavor.rawValue])
+        return services
+    }
+}
+
+/// Services offered to plugins. Built-in features receive their dependencies directly, so this
+/// provider currently offers nothing; it is the seam where read-only facades for third-party
+/// plugins are added.
+struct BuiltInServiceProvider: PluginServiceProvider {
+    func service(id: String, for pluginID: String) -> (any Sendable)? { nil }
+}

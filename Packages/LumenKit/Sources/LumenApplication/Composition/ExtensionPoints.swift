@@ -1,0 +1,28 @@
+import Foundation
+import LumenPlugins
+import LumenSearch
+
+/// What running a command does.
+public enum CommandAction: Sendable {
+    /// Navigates; the interface's router handles it.
+    case navigate(AppDestination)
+    /// Runs work and returns an optional confirmation message for a toast.
+    case perform(@Sendable () async throws -> String?)
+}
+
+/// A palette command together with what it does.
+public struct LumenCommand: Sendable {
+    public let command: PaletteCommand
+    public let action: CommandAction
+
+    public init(_ command: PaletteCommand, action: CommandAction) {
+        self.command = command
+        self.action = action
+    }
+}
+
+/// The extension points Lumen offers to features and plugins.
+public enum LumenExtensionPoints {
+    public static let commands = ExtensionPoint<LumenCommand>("lumen.commands", requires: .contributeCommands)
+    public static let searchSources = ExtensionPoint<any SearchableSource>("lumen.search.sources", requires: .contributeSearchResults)
+}

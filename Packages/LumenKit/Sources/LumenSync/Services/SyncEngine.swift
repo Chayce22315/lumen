@@ -13,6 +13,8 @@ public actor SyncEngine {
     public static let schema = SyncSchema.schema
     public static let runCompletedEvent: EventName = "sync.run.completed"
     public static let conflictDetectedEvent: EventName = "sync.conflict.detected"
+    /// Published for every entity a pull changed locally, so indexes and reminders follow along.
+    public static let entityAppliedEvent: EventName = "sync.entity.applied"
 
     private let database: Database
     private var transport: (any SyncTransport)?
@@ -268,7 +270,11 @@ public actor SyncEngine {
                     logger.warning("Skipping remote change of unknown kind", metadata: ["kind": envelope.entity.kind.rawValue])
                     continue
                 }
-                if let conflict = try await apply(envelope, handler: handler) {
+                let outcome = try await apply(envelope, handler: handler)
+                if outcome.changed {
+                    events.publish(DomainEvent(name: Self.entityAppliedEvent, entity: envelope.entity, actor: .sync, occurredAt: timeSource.now()))
+                }
+                if let conflict = outcome.conflict {
                     conflictCount += 1
                     events.publish(DomainEvent(name: Self.conflictDetectedEvent, entity: conflict.entity, attributes: ["fields": .number(Double(conflict.fields.count))], actor: .sync, occurredAt: conflict.detectedAt))
                 }
@@ -281,9 +287,14 @@ public actor SyncEngine {
         }
     }
 
-    /// Merges one remote state into the local entity. Returns a conflict when both sides changed
-    /// the same field differently since they last agreed.
-    private func apply(_ envelope: SyncEnvelope, handler: any SyncEntityHandler) async throws -> SyncConflict? {
+    private struct ApplyOutcome: Sendable {
+        let changed: Bool
+        let conflict: SyncConflict?
+    }
+
+    /// Merges one remote state into the local entity. Reports whether the local row changed and
+    /// a conflict when both sides changed the same field differently since they last agreed.
+    private func apply(_ envelope: SyncEnvelope, handler: any SyncEntityHandler) async throws -> ApplyOutcome {
         let store = self.store
         let now = timeSource.now()
         let replica = database.replicaID
@@ -297,19 +308,22 @@ public actor SyncEngine {
             let merged = local.merged(with: envelope.state)
 
             let currentSnapshot = try handler.snapshot(id: entity.id, in: db)
+            var changed = false
             if let snapshot = merged.snapshot {
                 if snapshot != currentSnapshot {
                     try handler.apply(snapshot, id: entity.id, in: db)
                     try db.recordChange(.upsert, entity: entity, payload: snapshot, timestamp: envelope.state.latestTimestamp)
+                    changed = true
                 }
             } else if merged.isDeleted, currentSnapshot != nil {
                 try handler.remove(id: entity.id, in: db)
                 try db.recordChange(.delete, entity: entity, payload: nil, timestamp: envelope.state.latestTimestamp)
+                changed = true
             }
             try store.saveShadow(record.observing(envelope.state), of: entity, in: db)
 
             // Our unsynchronized edits racing remote ones…
-            var fields = pending.isEmpty ? [] : EntityStateBuilder.conflicts(shadow: shadow, local: local, remote: envelope.state)
+            var fields: [FieldConflict] = pending.isEmpty ? [] : EntityStateBuilder.conflicts(shadow: shadow, local: local, remote: envelope.state)
             // …and remote writes we had never seen that lost to a different value here.
             for (key, incoming) in envelope.state.fields.sorted(by: { $0.key < $1.key }) {
                 let writer = incoming.timestamp.replica
@@ -321,10 +335,10 @@ public actor SyncEngine {
                       !fields.contains(where: { $0.field == key }) else { continue }
                 fields.append(FieldConflict(field: key, localValue: winner.value, remoteValue: incoming.value, chosen: .local))
             }
-            guard !fields.isEmpty else { return nil }
+            guard !fields.isEmpty else { return ApplyOutcome(changed: changed, conflict: nil) }
             let conflict = SyncConflict(entity: entity, fields: fields, detectedAt: now)
             try store.insert(conflict, in: db)
-            return conflict
+            return ApplyOutcome(changed: changed, conflict: conflict)
         }
     }
 

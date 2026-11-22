@@ -57,6 +57,25 @@ public final class SearchIndex: Sendable {
         }
     }
 
+    /// Title and subtitle of indexed entities, for labelling references (activity feeds, links)
+    /// without asking every module.
+    public func summaries(for references: [EntityReference]) async throws -> [EntityReference: IndexedSummary] {
+        guard !references.isEmpty else { return [:] }
+        let unique = Array(Set(references))
+        return try await database.read { db in
+            var result: [EntityReference: IndexedSummary] = [:]
+            for reference in unique {
+                if let row = try db.queryFirst(
+                    "SELECT title, subtitle FROM search_entries WHERE entity_kind = ? AND entity_id = ?",
+                    [reference.kind, reference.id]
+                ) {
+                    result[reference] = IndexedSummary(title: try row.get("title"), subtitle: try row.get("subtitle"))
+                }
+            }
+            return result
+        }
+    }
+
     public func search(_ query: SearchQuery) async throws -> [SearchResult] {
         guard let expression = FTSQueryBuilder.matchExpression(for: query.text) else { return [] }
         let tokens = FTSQueryBuilder.tokens(for: query.text)
