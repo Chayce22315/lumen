@@ -10,9 +10,13 @@ public enum KnowledgeError: Error, Sendable, Hashable, CustomStringConvertible {
     case documentFileMissing(storageKey: String)
     /// No saved version has this identifier (it may have been pruned).
     case versionNotFound(NoteVersion.ID)
+    /// The file's bytes are not a readable document of its type (a damaged PDF, for example).
+    case unreadableDocument
 
     public var description: String {
         switch self {
+        case .unreadableDocument:
+            return "The document's data could not be read"
         case .invalidStorageKey(let key):
             return "Invalid document storage key '\(key)'"
         case .documentFileMissing(let key):
@@ -40,6 +44,12 @@ extension KnowledgeError: PresentableError {
             )
         case .versionNotFound:
             return ErrorPresentation(title: "Version not found", message: "This version is no longer in the note's history.")
+        case .unreadableDocument:
+            return ErrorPresentation(
+                title: "Unreadable document",
+                message: "Lumen couldn't read this file's contents. It may be damaged.",
+                recoverySuggestion: "Open it in another app to check it, then import it again."
+            )
         }
     }
 }
