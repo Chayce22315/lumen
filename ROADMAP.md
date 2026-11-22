@@ -40,13 +40,15 @@ with tests, and keeps both CI jobs green. Status reflects what is in the reposit
 - Home: greeting, suggestions, agenda, projects, insights, activity, recent notes, layout editing.
 - View models for every screen, unit tested on Linux.
 
-## Phase 4 — iOS interface ⏳ (in progress)
+## Phase 4 — iOS interface ✅
 
 - [x] SwiftUI design system and every screen wired to its view model.
 - [x] Xcode project, widget extension (Today widget), App Intents (add task, today summary, add note).
 - [x] First green `xcodebuild` on CI: app, widget extension and App Intents for the iOS Simulator.
-- [ ] UI smoke tests (XCUITest target) for launch, capture, completion and search, run on CI.
-- [ ] App icon and launch polish.
+- [x] UI smoke tests (XCUITest target) for launch and every tab, capture, completion, search and the
+  unconfigured assistant, run on an iPhone simulator on CI. They found and pinned a real bug:
+  completed rows vanished from smart lists a quarter second after the tap.
+- [x] App icon (default, dark and tinted), accent color, launch screen in the palette background.
 
 ## Phase 5 — Depth
 
