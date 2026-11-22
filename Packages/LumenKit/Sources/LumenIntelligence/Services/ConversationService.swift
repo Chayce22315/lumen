@@ -63,8 +63,76 @@ public final class ConversationService: Sendable {
 
     /// Sets the conversation's model; `nil` follows the default model setting.
     @discardableResult
-    public func setSelection(_ selection: ModelSelection?, for id: Conversation.ID) async throws -> Conversation {
-        try await update(id) { $0.selection = selection }
+    public func setSelection(_ selection: ModelSelection?, for id: Conversation.ID, context: ActionContext = .user) async throws -> Conversation {
+        let updated = try await update(id) { $0.selection = selection }
+        var attributes: [String: JSONValue] = ["followsDefault": .bool(selection == nil)]
+        if let selection {
+            attributes["provider"] = .string(selection.providerID.rawValue)
+        }
+        events.publish(context.event(IntelligenceEvents.conversationModelChanged, entity: updated.reference, attributes: attributes, at: timeSource.now()))
+        return updated
+    }
+
+    // MARK: - Search
+
+    /// Conversations whose title or messages contain every term of `query` (prefix matching,
+    /// case- and diacritic-insensitive). Title matches come first, then conversations matched by
+    /// a message; each group is ordered by relevance. Archived conversations are included.
+    public func search(_ query: String, limit: Int = 30) async throws -> [ConversationSearchHit] {
+        guard let expression = ConversationSearchIndex.matchExpression(for: query) else { return [] }
+        let limit = max(1, limit)
+        return try await database.read { db in
+            var hits: [Conversation.ID: ConversationSearchHit] = [:]
+            var order: [Conversation.ID] = []
+
+            let titleRows = try db.query(
+                """
+                SELECT intelligence_conversations.* FROM intelligence_conversation_search
+                JOIN intelligence_conversations ON intelligence_conversations.rowid = intelligence_conversation_search.rowid
+                WHERE intelligence_conversation_search MATCH ?
+                ORDER BY bm25(intelligence_conversation_search)
+                LIMIT ?
+                """,
+                [expression, limit]
+            )
+            for row in titleRows {
+                let conversation = try Conversation(row: row)
+                hits[conversation.id] = ConversationSearchHit(conversation: conversation, titleMatches: true)
+                order.append(conversation.id)
+            }
+
+            // The best message per conversation; more rows than `limit` because several can
+            // belong to the same conversation.
+            let messageRows = try db.query(
+                """
+                SELECT intelligence_messages.id AS message_id, intelligence_messages.conversation_id AS conversation_id,
+                       intelligence_message_search.text AS text
+                FROM intelligence_message_search
+                JOIN intelligence_messages ON intelligence_messages.rowid = intelligence_message_search.rowid
+                WHERE intelligence_message_search MATCH ?
+                ORDER BY bm25(intelligence_message_search)
+                LIMIT ?
+                """,
+                [expression, limit * 20]
+            )
+            for row in messageRows {
+                let conversationID: Conversation.ID = try row.get("conversation_id")
+                let messageID: ChatMessage.ID = try row.get("message_id")
+                let text: String = try row.get("text")
+                if var hit = hits[conversationID] {
+                    if hit.matchedMessageID == nil {
+                        hit.matchedMessageID = messageID
+                        hit.matchedText = text
+                        hits[conversationID] = hit
+                    }
+                    continue
+                }
+                guard order.count < limit, let conversation = try ConversationRepository.fetch(conversationID, in: db) else { continue }
+                hits[conversationID] = ConversationSearchHit(conversation: conversation, titleMatches: false, matchedMessageID: messageID, matchedText: text)
+                order.append(conversationID)
+            }
+            return order.compactMap { hits[$0] }
+        }
     }
 
     /// Deletes the conversation and all its messages (every deletion is recorded for sync).

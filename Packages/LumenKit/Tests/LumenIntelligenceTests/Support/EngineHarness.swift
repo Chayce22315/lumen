@@ -176,12 +176,14 @@ struct EngineHarness {
         contextProvider: (any AssistantContextProvider)? = nil,
         configuration: AssistantEngine.Configuration = .init(),
         defaultModel: ModelSelection? = EngineHarness.selection,
-        keys: [ProviderID: String] = [.anthropic: ProviderFixtures.anthropicKey]
+        keys: [ProviderID: String] = [.anthropic: ProviderFixtures.anthropicKey],
+        attachmentResolver: (any AttachmentResolver)? = nil,
+        extraProviders: [any ModelProvider] = []
     ) async throws -> EngineHarness {
         let environment = try await CoreTestEnvironment.make(schemas: [AssistantEngine.schema])
         let events = EventRecorder(bus: environment.events, filter: EventFilter(modules: ["intelligence"]))
         let secrets = ProviderFixtures.secrets(keys)
-        let providers = ProviderRegistry([provider])
+        let providers = ProviderRegistry([provider] + extraProviders)
         let registry = ToolRegistry()
         for tool in tools {
             try registry.register(tool)
@@ -203,6 +205,7 @@ struct EngineHarness {
             memory: memory,
             approvalHandler: approval,
             contextProvider: contextProvider,
+            attachmentResolver: attachmentResolver,
             timeSource: environment.clock,
             calendar: environment.calendar,
             logger: logger,

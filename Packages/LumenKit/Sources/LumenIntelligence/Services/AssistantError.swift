@@ -13,6 +13,10 @@ public enum AssistantError: PresentableError, Hashable {
     case turnInProgress
     /// The model declined to answer.
     case refused
+    /// An attached item was deleted, has no readable text, or attachments aren't available here.
+    case attachmentUnavailable
+    /// More items than one message may carry.
+    case tooManyAttachments(Int)
 
     public var presentation: ErrorPresentation {
         switch self {
@@ -47,6 +51,18 @@ public enum AssistantError: PresentableError, Hashable {
                 title: "Request declined",
                 message: "The model declined to answer this request.",
                 recoverySuggestion: "Try rephrasing, or choose another model."
+            )
+        case .attachmentUnavailable:
+            return ErrorPresentation(
+                title: "Attachment unavailable",
+                message: "An attached item was deleted or has no text the assistant can read.",
+                recoverySuggestion: "Remove it and send the message again."
+            )
+        case .tooManyAttachments(let limit):
+            return ErrorPresentation(
+                title: "Too many attachments",
+                message: "A message can carry up to \(limit) items from your library.",
+                recoverySuggestion: "Remove some attachments and send again."
             )
         }
     }
