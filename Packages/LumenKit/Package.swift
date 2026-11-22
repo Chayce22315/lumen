@@ -34,6 +34,7 @@ let package = Package(
         .library(name: "LumenPlugins", targets: ["LumenPlugins"]),
         .library(name: "LumenAnalytics", targets: ["LumenAnalytics"]),
         .library(name: "LumenKnowledge", targets: ["LumenKnowledge"]),
+        .library(name: "LumenAutomation", targets: ["LumenAutomation"]),
         .library(name: "LumenDesignTokens", targets: ["LumenDesignTokens"]),
         .library(name: "LumenWidgetData", targets: ["LumenWidgetData"]),
         .library(name: "LumenApplication", targets: ["LumenApplication"]),
@@ -55,6 +56,7 @@ let package = Package(
         module("LumenPlugins", dependencies: ["LumenCore"]),
         module("LumenAnalytics", dependencies: ["LumenCore"]),
         module("LumenKnowledge", dependencies: ["LumenCore"]),
+        module("LumenAutomation", dependencies: ["LumenCore"]),
         module("LumenDesignTokens"),
         module("LumenWidgetData"),
         module("LumenApplication", dependencies: [
@@ -74,6 +76,7 @@ let package = Package(
         tests("LumenPluginsTests", dependencies: ["LumenPlugins"]),
         tests("LumenAnalyticsTests", dependencies: ["LumenAnalytics"]),
         tests("LumenKnowledgeTests", dependencies: ["LumenKnowledge"]),
+        tests("LumenAutomationTests", dependencies: ["LumenAutomation"]),
         tests("LumenDesignTokensTests", dependencies: ["LumenDesignTokens"]),
         tests("LumenApplicationTests", dependencies: ["LumenApplication"]),
     ]

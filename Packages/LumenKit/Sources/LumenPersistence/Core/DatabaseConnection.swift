@@ -139,9 +139,12 @@ public final class DatabaseConnection {
         return try statement.step() ? statement.currentRow() : nil
     }
 
-    /// Runs a query and returns the first column of the first row.
+    /// Runs a query and returns the first column of the first row; `nil` when there is no row or
+    /// the value is NULL.
     public func scalar<T: DatabaseValueConvertible>(_ sql: String, _ arguments: [any DatabaseValueConvertible] = [], as _: T.Type = T.self) throws -> T? {
         guard let row = try queryFirst(sql, arguments), let first = row.values.first else { return nil }
+        // An aggregate over no rows (`min()`, `max()`) yields NULL: that is "no value", not a type error.
+        if case .null = first { return nil }
         guard let value = T(sqlValue: first) else {
             throw DatabaseError.typeMismatch(column: row.columnNames.first ?? "?", expected: String(describing: T.self), actual: first.typeName)
         }
