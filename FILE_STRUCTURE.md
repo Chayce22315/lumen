@@ -34,7 +34,7 @@ scripts/ios-ui-tests.sh       Run the UI smoke tests on the newest iPhone simula
 | `LumenOrganization` | Tasks, projects, calendars, agenda, reminders, quick capture | 23 | 4 |
 | `LumenPersistence` | SQLite connection, typed rows, migrations, change log | 9 | 3 |
 | `LumenPlugins` | Manifests, capabilities, extension registry, plugin host | 7 | 1 |
-| `LumenPresentation` | @Observable view models, router, date labels | 21 | 3 |
+| `LumenPresentation` | @Observable view models, router, date labels | 22 | 3 |
 | `LumenSearch` | FTS5 index, ranking, snippets, indexer, history, command registry | 11 | 2 |
 | `LumenSync` | Entity-state CRDT, shadows, conflicts, sync engine | 6 | 3 |
 | `LumenTestSupport` | Test clock, calendar, in-memory environment, event recorder | 3 | — |
@@ -48,7 +48,7 @@ scripts/ios-ui-tests.sh       Run the UI smoke tests on the newest iPhone simula
 | `LumenPlatform` | EventKit, Keychain/UserNotifications wiring, WidgetKit reloads, shared services | 3 | — |
 | `LumenUI` | Screens and navigation | 26 | — |
 
-**Totals:** 335 source files and 91 test files in the packages, plus 3 in the app targets.
+**Totals:** 336 source files and 91 test files in the packages, plus 4 in the app targets (app, widget, UI tests).
 
 ## Module layout
 
@@ -140,7 +140,7 @@ Packages/LumenKit/Sources/LumenPresentation/Notifications/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Search/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Settings/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Support/  (3)
-Packages/LumenKit/Sources/LumenPresentation/Tasks/  (5)
+Packages/LumenKit/Sources/LumenPresentation/Tasks/  (6)
 Packages/LumenKit/Sources/LumenSearch/Logic/  (4)
 Packages/LumenKit/Sources/LumenSearch/Models/  (2)
 Packages/LumenKit/Sources/LumenSearch/Schema/  (1)
