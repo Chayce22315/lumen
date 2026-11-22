@@ -50,17 +50,22 @@ with tests, and keeps both CI jobs green. Status reflects what is in the reposit
   completed rows vanished from smart lists a quarter second after the tap.
 - [x] App icon (default, dark and tinted), accent color, launch screen in the palette background.
 
-## Phase 5 — Depth
+## Phase 5 — Depth ⏳ (code complete; first green CI pending)
 
-- Sync transport: CloudKit private database implementation of `SyncTransport` (requires an Apple
-  developer team and iCloud container), plus document blob sync.
-- Document previews (QuickLook) and text extraction for PDFs (PDFKit).
-- Assistant: model picker per conversation, conversation search, attachments from the library.
-- Automations: conditions and delays in the visual editor (the engine already supports them),
-  drag-to-connect canvas editing, run detail screen.
-- Calendar: create events in system calendars, month view.
-- Widgets: interactive completion (App Intents in widgets), lock screen accessories.
-- Background refresh (`BGTaskScheduler`) for schedules and sync while the app is closed.
+- [x] Sync transport over CloudKit's private database (`CloudSyncTransport` + `CloudKitRecordDatabase`)
+  and document file sync. **Switched off** until the build names an iCloud container
+  (`LumenCloudKitContainerIdentifier`); that needs an Apple Developer Program team. The transport
+  logic is tested against an in-memory database; the CloudKit adapter has not run against iCloud.
+- [x] Document previews (QuickLook) and PDF text extraction (PDFKit) for new imports.
+- [x] Assistant: model picker per conversation, conversation search, attachments from the library.
+- [x] Automations: conditions and delays in the visual editor, drag-to-connect canvas editing,
+  undo, run detail with rerun.
+- [x] Calendar: create, edit and delete events in system calendars; month view.
+- [x] Widgets: check off tasks from the Today widget (queued in the App Group, applied by the app);
+  Lock Screen accessories.
+- [x] Background refresh (`BGTaskScheduler`): automations, widget actions, sync, widget snapshot and
+  document uploads while the app is closed.
+- [ ] Text extraction for PDFs imported before Phase 5 (needs a one-time backfill).
 
 ## Phase 6 — Platform reach
 

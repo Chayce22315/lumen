@@ -74,6 +74,44 @@ xcodebuild -project Lumen.xcodeproj -scheme Lumen \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
+### iCloud sync (needs an Apple Developer Program team)
+
+Sync is built but switched off: `LivePlatform` creates the CloudKit transport only when the app's
+Info.plist names an iCloud container, because touching CloudKit without the iCloud entitlement
+terminates the app. Without one, Settings › Sync says sync isn't set up and every change stays in the
+local change log, ready to send later. To turn it on:
+
+1. In the Apple Developer portal (paid membership), create an iCloud container, for example
+   `iCloud.app.lumen`.
+2. In Xcode, select the **Lumen** target › Signing & Capabilities › + Capability › iCloud, tick
+   **CloudKit** and select that container. Xcode adds the entitlement to
+   `App/Configuration/Lumen.entitlements`.
+3. Add `LumenCloudKitContainerIdentifier` (String) with the container identifier to
+   `App/Configuration/Lumen-Info.plist`.
+4. Run on a device or simulator signed into iCloud. Settings › Sync shows the status; CloudKit
+   Console shows the `Lumen` zone in the private database.
+
+The transport logic (`CloudSyncTransport`) is tested against an in-memory database
+(`InMemoryCloudDatabase`); only `CloudKitRecordDatabase` talks to iCloud, and it has not yet run
+against a real container.
+
+With a free Apple ID (personal team) the app runs on your own device, but iCloud is not available.
+If Xcode also refuses the App Group, remove that capability from both targets: the app falls back
+to its own container and the widget shows its "open Lumen" state.
+
+### Background refresh
+
+The app registers `app.lumen.refresh` (`BGTaskSchedulerPermittedIdentifiers`) and schedules it when
+it moves to the background; the work is `LumenRuntime.performBackgroundRefresh()` (automations,
+widget actions, sync, widget snapshot, document uploads), unit tested on Linux. To trigger it on a
+device while debugging: send the app to the background, pause in Xcode and run
+
+```
+e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"app.lumen.refresh"]
+```
+
+then continue.
+
 ### App icon
 
 The icon is rendered, not drawn by hand: `python3 Tools/AppIcon/render.py` (needs Pillow) writes

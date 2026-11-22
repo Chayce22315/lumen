@@ -42,19 +42,19 @@ Dependencies point strictly downward. Engines never import each other.
 | `LumenCore` | `EventBus` and `DomainEvent`, `ActionContext`, `SettingsStore`, `SecretStore` (+ Keychain), `ErrorReporter`, `AppConfiguration`, feature flags | Foundation, Persistence |
 | `LumenDesignTokens` | Semantic color palette (dark-first, light variant), spacing, radii, type ramp, motion curves, WCAG contrast checks | — |
 | `LumenNotifications` | In-app inbox, per-category preferences, quiet hours, system delivery via `UNUserNotificationCenter` | Core |
-| `LumenOrganization` | Tasks, projects, calendar events, reminders, recurrence, priorities, dependencies, progress | Core |
-| `LumenKnowledge` | Notes, documents, collections, tags, wiki links and backlinks, version history, Markdown structure | Core |
+| `LumenOrganization` | Tasks, projects, calendar events, reminders, recurrence, priorities, dependencies, progress, external calendar source (read and write) | Core |
+| `LumenKnowledge` | Notes, documents, collections, tags, wiki links and backlinks, version history, Markdown structure, platform text extractors (`DocumentTextExtractor`; PDFKit on Apple platforms) | Core |
 | `LumenSearch` | FTS5 global index, ranking, filters, search history, command palette actions | Core |
-| `LumenIntelligence` | Provider abstraction (Anthropic, OpenAI-compatible), streaming, tool calling loop, conversation persistence, memory, context budgeting, retries, token usage | Core |
+| `LumenIntelligence` | Provider abstraction (Anthropic, OpenAI-compatible), streaming, tool calling loop, conversation persistence, memory, context budgeting, retries, token usage, per-conversation model choice, attachments (references resolved through `AttachmentResolver`), conversation search (FTS5) | Core |
 | `LumenAutomation` | Workflow graphs, triggers, conditions, templating, execution, scheduling, run history, recovery | Core |
 | `LumenAnalytics` | Local event collection, daily aggregates, productivity insights, comparisons, reports | Core |
-| `LumenSync` | Local-first sync over the change log: transport abstraction, three-way merge, conflict records, retry queue, history | Core |
+| `LumenSync` | Local-first sync over the change log: per-field LWW entity states, transport abstraction, the cloud transport over `CloudRecordDatabase`, document file sync by SHA-256, conflict records, retry queue, remote-reset recovery, history | Core |
 | `LumenPlugins` | Plugin manifests, capability declarations, permission grants, lifecycle | Core, extension protocols of the engines it hosts |
-| `LumenWidgetData` | The snapshot the widget renders and the shared App Group location | — |
+| `LumenWidgetData` | The snapshot the widget renders, the widget action queue, the shared App Group location | — |
 | `LumenApplication` | Composition root, bootstrap and shutdown, built-in features registered as plugins (assistant tools, automation actions and triggers, search sources, sync handlers, commands), Home, reminders, widget snapshot, deep links | all engines |
 | `LumenPresentation` | `@Observable` view models for every screen, router, date labels | Application |
 | `LumenDesignSystem` | SwiftUI rendering of the tokens, components, motion, haptics | DesignTokens |
-| `LumenPlatform` | Apple adapters: EventKit calendar source, Keychain and UserNotifications wiring, WidgetKit reloads, the shared services instance | Application |
+| `LumenPlatform` | Apple adapters: EventKit calendar source (read and write), CloudKit record database (only for builds with an iCloud container), PDFKit text extraction, background refresh, Keychain and UserNotifications wiring, WidgetKit reloads, the shared services and runtime | Application |
 | `LumenUI` | Screens, navigation, sheets, command palette | Presentation, DesignSystem, Platform |
 
 ## 3. Decisions
@@ -125,6 +125,23 @@ iOS 18 provides the zoom navigation transition (`matchedTransitionSource` /
 the Synchronization module, and mature Observation. Supporting iOS 17 would require
 hand-built fallbacks for all of these.
 
+### D8 — Sync transports talk to a small record-database protocol
+
+`CloudSyncTransport` holds all sync transport logic (one record per entity carrying its merged
+`EntityState`, merge on change-tag conflicts, batching within CloudKit's request limits, assets for
+large states, change tokens, full refetch when a token expires, remote-reset recovery) against
+`CloudRecordDatabase`, which CloudKit implements in the app and an in-memory fake implements in
+tests. The Apple adapter only translates. The adapter is created only when the build names an iCloud
+container, because touching `CKContainer` without the entitlement terminates the app.
+
+### D9 — The widget extension never opens the database
+
+Widgets have tight memory limits and a second process writing SQLite invites contention. A
+checkbox in the widget appends to `WidgetActionQueue` (a bounded JSON file in the App Group,
+written atomically under `flock`) and updates the snapshot optimistically; the app applies the
+queue through `TaskService` in `LumenRuntime.applyWidgetActions()` on start, on activation and in
+background refresh.
+
 ## 4. Data flow
 
 ```
@@ -177,7 +194,8 @@ indexing, reminders and sync behave identically whoever acts. Events carry the a
 (`assistant`, `automation`), which keeps analytics honest and lets automations ignore their own
 output beyond a causation depth. Mutating assistant tools wait for the user's approval through
 `ToolApprovalBroker` unless the user turned approval off; with no interface attached the answer
-is "no".
+is "no". Attachments are resolved by the application layer (`KnowledgeAttachmentResolver`), so the
+intelligence engine never reads knowledge tables.
 
 ## 9. Testing strategy
 

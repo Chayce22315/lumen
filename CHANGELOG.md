@@ -54,10 +54,43 @@ All notable changes to Lumen are recorded here. The format follows
 - `LaunchMode`: Debug builds started with `-LumenUITesting` run on an empty in-memory store with
   in-memory secrets, no system notifications and no network.
 - Quick capture has a Close button.
+- Sync over CloudKit's private database (`CloudSyncTransport`, `CloudKitRecordDatabase`): one record
+  per entity holding its merged state, merges on change-tag conflicts, batching within CloudKit's
+  limits, assets for large states, change tokens with full refetch on expiry, recovery when the
+  remote store is reset. Switched off until the build names an iCloud container
+  (`LumenCloudKitContainerIdentifier`).
+- Document file sync: files upload once per SHA-256 and download on first read, verified.
+- Background app refresh (`app.lumen.refresh`): automations, widget actions, sync, widget snapshot
+  and document uploads while the app is closed; the interface and background refresh share one
+  runtime.
+- Assistant: choose a model per conversation (only configured providers are offered); search
+  conversations by title and message text with highlighted matches; attach notes and documents to
+  a message (stored as references, re-read on each request, cut to a budget and labelled when cut).
+- Documents: QuickLook preview when the file is on the device; PDF text extraction (PDFKit) makes
+  newly imported PDFs searchable and attachable.
+- Visual automation editor: conditions with typed rules and true/false branches, delays (up to 30
+  days), adding steps after any output, connecting and disconnecting outputs, undo, refusals that
+  explain why. The diagram moves steps by touch-and-hold then drag (snapped to a grid), connects by
+  dragging from an output dot, removes connections by tapping them; every diagram action is also
+  in each step's menu and its accessibility actions.
+- Run detail: each step's branch, inputs, output, timing, retries, warnings and errors; run again;
+  stop a running run. Run steps keep their resolved inputs (migration
+  `automation/0002_run_step_inputs`); `AutomationEngine.rerun`.
+- Create, edit and delete events in system calendars from the event editor, with honest access
+  handling, notes where the system calendar repeats differently, and rules and alerts Lumen can't
+  edit kept intact; read-only calendars open as view-only.
+- Month view in the Calendar screen with event and task dots and a VoiceOver label per day.
+- Check off tasks from the Today widget: the completion is queued in the App Group and applied by
+  the app; the widget updates immediately. Lock Screen widgets: progress ring, tasks left with the
+  next task, inline summary.
 - App icon (default, dark and tinted appearances) rendered by `Tools/AppIcon/render.py`; accent
   color and a launch screen in the palette's background color, so launch no longer flashes white.
 
 ### Fixed
+- Editing an existing automation flattened its graph into a linear chain (dropping branches), turned
+  non-daily schedules into daily ones and removed event-trigger conditions. The editor now edits the
+  stored graph and keeps triggers it can't change in place.
+- The document detail screen no longer hides load errors.
 - Completing a task in a smart list (Inbox, Today, Upcoming, Anytime) or a tag list made the row
   vanish on the next refresh, a quarter second later, cutting off the checkmark and the chance to
   undo. Completed rows now stay checked in place until the list is left, as they already did in
