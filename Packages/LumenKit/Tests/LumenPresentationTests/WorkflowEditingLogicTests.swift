@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(CoreGraphics)
+// On Apple platforms CGRect/CGPoint members and Equatable come from the CoreGraphics overlay;
+// on Linux, Foundation provides them.
+import CoreGraphics
+#endif
 import Testing
 import LumenFoundation
 import LumenAutomation
