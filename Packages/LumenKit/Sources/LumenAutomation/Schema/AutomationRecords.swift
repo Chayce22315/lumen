@@ -71,6 +71,7 @@ extension RunStep {
             startedAt: try row.get("started_at"),
             finishedAt: try row.get("finished_at"),
             output: try JSONText.decodeIfPresent(JSONValue.self, column: "output", in: row),
+            inputs: try JSONText.decodeIfPresent(JSONValue.self, column: "inputs", in: row),
             message: try row.get("message"),
             errorMessage: try row.get("error_message"),
             warnings: try JSONText.decode([String].self, column: "warnings", in: row)

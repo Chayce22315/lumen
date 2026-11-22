@@ -64,6 +64,8 @@ struct EntityView: View {
             ChatView(conversationID: Conversation.ID(reference.id), services: services, model: model)
         case .workflow:
             WorkflowEditorView(services: services, workflowID: Workflow.ID(reference.id))
+        case .workflowRun:
+            RunDetailView(services: services, runID: WorkflowRun.ID(reference.id))
         default:
             StateMessage("Can't open this", message: "Lumen doesn't know how to show this kind of item yet.", symbolName: "questionmark.square.dashed")
         }

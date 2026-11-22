@@ -7,7 +7,8 @@ import LumenPersistence
 ///   JSON; `trigger_type` and `trigger_event` are denormalized for event lookup.
 /// - `automation_schedule_state`: next fire date per schedule-triggered workflow, with the
 ///   schedule it was computed for so edits (local or synced) are detected.
-/// - `automation_runs`, `automation_run_steps`: device-local execution history.
+/// - `automation_runs`, `automation_run_steps`: device-local execution history. Since 0002 a step
+///   keeps the inputs it resolved (`inputs`, JSON, NULL for older steps).
 public enum AutomationSchema {
     public static let schema = DatabaseSchema(namespace: "automation", migrations: [
         .sql("0001_workflows_runs_schedules", """
@@ -69,6 +70,9 @@ public enum AutomationSchema {
                 warnings TEXT NOT NULL DEFAULT '[]'
             );
             CREATE UNIQUE INDEX automation_run_steps_sequence ON automation_run_steps (run_id, sequence);
+            """),
+        .sql("0002_run_step_inputs", """
+            ALTER TABLE automation_run_steps ADD COLUMN inputs TEXT;
             """),
     ])
 }
