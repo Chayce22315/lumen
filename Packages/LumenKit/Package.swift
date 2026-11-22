@@ -30,6 +30,7 @@ let package = Package(
         .library(name: "LumenNotifications", targets: ["LumenNotifications"]),
         .library(name: "LumenOrganization", targets: ["LumenOrganization"]),
         .library(name: "LumenSearch", targets: ["LumenSearch"]),
+        .library(name: "LumenSync", targets: ["LumenSync"]),
     ],
     targets: [
         .systemLibrary(name: "CSQLite", path: "Sources/CSQLite", providers: [.apt(["libsqlite3-dev"])]),
@@ -44,6 +45,7 @@ let package = Package(
         module("LumenNotifications", dependencies: ["LumenCore"]),
         module("LumenOrganization", dependencies: ["LumenCore"]),
         module("LumenSearch", dependencies: ["LumenCore"]),
+        module("LumenSync", dependencies: ["LumenCore"]),
 
         module("LumenTestSupport", dependencies: ["LumenFoundation", "LumenPersistence", "LumenCore"]),
 
@@ -53,5 +55,6 @@ let package = Package(
         tests("LumenNotificationsTests", dependencies: ["LumenNotifications"]),
         tests("LumenOrganizationTests", dependencies: ["LumenOrganization"]),
         tests("LumenSearchTests", dependencies: ["LumenSearch"]),
+        tests("LumenSyncTests", dependencies: ["LumenSync"]),
     ]
 )
