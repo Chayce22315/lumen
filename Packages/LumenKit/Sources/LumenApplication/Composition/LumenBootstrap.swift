@@ -85,7 +85,20 @@ public enum LumenBootstrap {
         }
         let notes = NoteService(database: database, events: events, timeSource: timeSource, logger: logging.logger("notes"))
         let collections = CollectionService(database: database, events: events, timeSource: timeSource, logger: logging.logger("collections"))
-        let documents = DocumentService(database: database, storage: storage, events: events, timeSource: timeSource, logger: logging.logger("documents"))
+        // Files of documents added on other devices download on first read when the sync
+        // transport also carries files.
+        let blobs = BlobSynchronizer(
+            database: database,
+            transport: platform.syncTransport as? any BlobTransport,
+            digest: { SHA256.hexDigest(of: $0) },
+            timeSource: timeSource,
+            logger: logging.logger("sync.files")
+        )
+        let documents = DocumentService(
+            database: database, storage: SyncingDocumentStorage(local: storage, blobs: blobs),
+            events: events, timeSource: timeSource, logger: logging.logger("documents")
+        )
+        let documentFiles = DocumentFileSync(documents: documents, local: storage, blobs: blobs, events: events, logger: logging.logger("sync.files"))
         let knowledge = KnowledgeServices(
             notes: notes,
             collections: collections,
@@ -218,6 +231,7 @@ public enum LumenBootstrap {
             database: database, events: events, settings: settings, secrets: platform.secrets, errors: errors,
             notifications: notifications, organization: organization, knowledge: knowledge,
             intelligence: intelligence, automation: automation, search: search, analytics: analytics, sync: sync,
+            documentFiles: documentFiles,
             plugins: PluginServices(host: host, extensions: extensions), commands: commandCenter, home: home, widgets: widgets
         )
         logger.info("Services created", metadata: ["flavor": configuration.flavor.rawValue])

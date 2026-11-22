@@ -52,6 +52,7 @@ public actor LumenRuntime {
         await services.analytics.collector.start()
         await services.organization.reminders.start()
         await services.widgets.start()
+        await services.documentFiles.start()
         await services.automation.engine.start()
         do {
             _ = try await services.automation.engine.recoverInterruptedRuns()
@@ -99,6 +100,7 @@ public actor LumenRuntime {
         scheduler?.cancel()
         scheduler = nil
         await services.automation.engine.stop()
+        await services.documentFiles.stop()
         await services.widgets.stop()
         await services.organization.reminders.stop()
         await services.analytics.collector.stop()

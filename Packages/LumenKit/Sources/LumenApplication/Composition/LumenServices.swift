@@ -84,6 +84,8 @@ public final class LumenServices: Sendable {
     public let search: SearchServices
     public let analytics: AnalyticsServices
     public let sync: SyncEngine
+    /// Uploads document files for other devices; downloads happen when a document is read.
+    public let documentFiles: DocumentFileSync
     public let plugins: PluginServices
     public let commands: CommandCenter
     public let home: HomeService
@@ -108,6 +110,7 @@ public final class LumenServices: Sendable {
         search: SearchServices,
         analytics: AnalyticsServices,
         sync: SyncEngine,
+        documentFiles: DocumentFileSync,
         plugins: PluginServices,
         commands: CommandCenter,
         home: HomeService,
@@ -131,6 +134,7 @@ public final class LumenServices: Sendable {
         self.search = search
         self.analytics = analytics
         self.sync = sync
+        self.documentFiles = documentFiles
         self.plugins = plugins
         self.commands = commands
         self.home = home

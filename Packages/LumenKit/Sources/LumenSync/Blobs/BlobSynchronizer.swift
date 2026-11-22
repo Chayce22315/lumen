@@ -66,8 +66,25 @@ public actor BlobSynchronizer {
 
     public nonisolated var isConfigured: Bool { transport != nil }
 
+    /// The pass in progress; passes run one after another so a file is never uploaded twice.
+    private var lastPass: Task<Void, Never>?
+
     /// Uploads the files among `candidates` not uploaded before. `read` returns a file's bytes.
-    public func uploadPending(_ candidates: [BlobReference], read: @Sendable (BlobReference) async throws -> Data) async -> BlobUploadReport {
+    public func uploadPending(_ candidates: [BlobReference], read: @escaping @Sendable (BlobReference) async throws -> Data) async -> BlobUploadReport {
+        let previous = lastPass
+        let pass = Task { [weak self] () -> BlobUploadReport in
+            await previous?.value
+            return await self?.performUploads(candidates, read: read) ?? BlobUploadReport()
+        }
+        lastPass = Task { _ = await pass.value }
+        return await withTaskCancellationHandler {
+            await pass.value
+        } onCancel: {
+            pass.cancel()
+        }
+    }
+
+    private func performUploads(_ candidates: [BlobReference], read: @Sendable (BlobReference) async throws -> Data) async -> BlobUploadReport {
         var report = BlobUploadReport()
         guard let transport else { return report }
         let unique = Dictionary(candidates.map { ($0.sha256, $0) }, uniquingKeysWith: { first, _ in first })

@@ -22,8 +22,8 @@ enum KnowledgeIntegration {
                 upsert: { collection, db in try CollectionRepository(db).upsertRow(collection) },
                 delete: { id, db in try CollectionRepository(db).deleteRow(NoteCollection.ID(id)) }
             ),
-            // Document metadata synchronizes; file contents are not part of the change log and
-            // need a transport that carries blobs (see ROADMAP: document sync).
+            // Document metadata synchronizes here; file contents are not part of the change log
+            // and travel separately (`DocumentFileSync`, `SyncingDocumentStorage`).
             CodableSyncHandler<DocumentItem>(
                 kind: .document,
                 fetch: { id, db in try DocumentRepository(db).document(DocumentItem.ID(id)) },
