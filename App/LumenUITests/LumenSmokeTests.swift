@@ -21,6 +21,15 @@ final class LumenSmokeTests: XCTestCase {
         XCTAssertTrue(app.buttons["New task"].firstMatch.waitForExistence(timeout: timeout), "Home did not come back")
     }
 
+    func testAssistantWithoutKeyExplainsSetup() {
+        let app = launch()
+        app.tabBars.firstMatch.buttons["Assistant"].tap()
+        let setup = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "Set up the assistant"))
+            .firstMatch
+        XCTAssertTrue(setup.waitForExistence(timeout: timeout), "With no API key the assistant must say what to set up")
+    }
+
     func testCaptureAndCompleteTask() {
         let app = launch()
         let title = "Water the plants"
