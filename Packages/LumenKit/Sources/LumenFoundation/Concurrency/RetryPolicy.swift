@@ -57,7 +57,7 @@ public enum RetryDecision: Sendable, Equatable {
 /// Runs `operation`, retrying according to `policy` while `classify` allows it.
 ///
 /// Cancellation is never retried: a `CancellationError` (or a cancelled task) is rethrown immediately.
-public func withRetry<T>(
+public func withRetry<T: Sendable>(
     policy: RetryPolicy,
     isolation: isolated (any Actor)? = #isolation,
     classify: (any Error) -> RetryDecision,
