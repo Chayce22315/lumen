@@ -1,4 +1,5 @@
 import SwiftUI
+import QuickLook
 import LumenCore
 import LumenFoundation
 import LumenDesignSystem
@@ -148,22 +149,35 @@ private struct VersionHistoryView: View {
     }
 }
 
-/// An imported document's details and contents.
+/// An imported document's details and contents, with a QuickLook preview of the file.
 struct DocumentDetailView: View {
-    let documentID: DocumentItem.ID
-    let services: LumenServices
-    @State private var document: DocumentItem?
-    @State private var fileURL: URL?
+    @State private var detail: DocumentDetailViewModel
+
+    init(documentID: DocumentItem.ID, services: LumenServices) {
+        _detail = State(initialValue: DocumentDetailViewModel(documentID: documentID, services: services))
+    }
 
     var body: some View {
         List {
-            if let document {
+            switch detail.state {
+            case .idle, .loading:
+                SkeletonRows(count: 3)
+            case .failed(let error):
+                StateMessage(error.title, message: error.message, symbolName: "doc.questionmark", actionTitle: "Try again") {
+                    Task { await detail.load() }
+                }
+            case .loaded(let document):
                 Section {
                     LabeledContent("Name", value: document.originalFileName)
                     LabeledContent("Size", value: ByteCountFormatter.string(fromByteCount: document.byteCount, countStyle: .file))
                     LabeledContent("Added") { Text(document.createdAt, style: .date) }
-                    if let fileURL {
+                    if let fileURL = detail.fileURL {
+                        Button { detail.preview() } label: { Label("Preview", systemImage: "eye") }
                         ShareLink(item: fileURL) { Label("Share file", systemImage: "square.and.arrow.up") }
+                    } else {
+                        Label("This document's file isn't on this device.", systemImage: "icloud.slash")
+                            .lumenText(.footnote)
+                            .foregroundStyle(LumenColor.textSecondary)
                     }
                 }
                 if let text = document.extractedText, !text.isEmpty {
@@ -173,17 +187,13 @@ struct DocumentDetailView: View {
                             .textSelection(.enabled)
                     }
                 }
-            } else {
-                SkeletonRows(count: 3)
             }
         }
         .scrollContentBackground(.hidden)
         .lumenScreenBackground()
-        .navigationTitle(document?.title ?? "Document")
+        .navigationTitle(detail.state.value?.title ?? "Document")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            document = try? await services.knowledge.documents.document(documentID)
-            fileURL = try? await services.knowledge.documents.fileURL(for: documentID)
-        }
+        .quickLookPreview($detail.previewURL)
+        .task { await detail.start() }
     }
 }
