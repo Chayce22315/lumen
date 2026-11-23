@@ -64,17 +64,6 @@ public struct PluginServices: Sendable {
     public let packages: PluginPackageManager
     /// Workflows added from plugin templates.
     public let templates: PluginTemplateService
-
-    /// Whether this build allows third-party plugins (`FeatureFlag.thirdPartyPlugins`).
-    public var allowsThirdParty: Bool { host.allowsThirdParty }
-
-    /// Assistant shortcuts offered by active plugins, by plugin then title.
-    public func promptShortcuts() -> [PromptShortcut] {
-        extensions.contributions(to: LumenExtensionPoints.assistantPrompts).sorted { a, b in
-            if a.pluginName != b.pluginName { return a.pluginName.foldedForMatching < b.pluginName.foldedForMatching }
-            return a.title.foldedForMatching < b.title.foldedForMatching
-        }
-    }
 }
 
 /// The fully wired object graph. Created once by `LumenBootstrap` and shared by the interface,

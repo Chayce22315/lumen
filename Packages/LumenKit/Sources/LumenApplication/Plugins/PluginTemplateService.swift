@@ -64,3 +64,29 @@ public final class PluginTemplateService: Sendable {
         return try await engine.run(workflow.id, context: context)
     }
 }
+
+extension PluginServices {
+    /// Whether this build allows third-party plugins (`FeatureFlag.thirdPartyPlugins`).
+    public var allowsThirdParty: Bool { host.allowsThirdParty }
+
+    /// Assistant shortcuts offered by active plugins, by plugin then title.
+    public func promptShortcuts() -> [PromptShortcut] {
+        extensions.contributions(to: LumenExtensionPoints.assistantPrompts).sorted { a, b in
+            if a.pluginName != b.pluginName { return a.pluginName.foldedForMatching < b.pluginName.foldedForMatching }
+            return a.title.foldedForMatching < b.title.foldedForMatching
+        }
+    }
+
+    /// A package's automation templates in the engine's types, for previews. The review already
+    /// refused packages whose templates don't decode, so none are dropped in practice.
+    public func templates(in manifest: PluginPackageManifest) -> [WorkflowTemplate] {
+        manifest.contributions.workflows.enumerated().compactMap { index, contribution in
+            try? PluginWorkflowDecoding.template(contribution, index: index, manifest: manifest)
+        }
+    }
+
+    /// The automation step a package's webhook becomes, as automations reference it.
+    public static func webhookActionID(pluginID: String, webhookID: String) -> AutomationActionID {
+        PluginWebhookAction.actionID(pluginID: pluginID, webhookID: webhookID)
+    }
+}
