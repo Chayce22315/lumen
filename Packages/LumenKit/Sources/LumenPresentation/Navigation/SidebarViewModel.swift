@@ -17,8 +17,6 @@ public final class SidebarViewModel {
         public let symbolName: String
         /// 0 for top-level collections.
         public let depth: Int
-        /// The title with the collection's place, for VoiceOver ("Meetings, in Work").
-        public let accessibilityLabel: String
 
         public var section: NavigationSection { .collection(id) }
     }
@@ -52,7 +50,7 @@ public final class SidebarViewModel {
     public func loadCollections() async {
         do {
             let tree = try await services.knowledge.collections.tree()
-            collections = tree.flatMap { Self.items(for: $0, parents: []) }
+            collections = tree.flatMap(\.flattened).map(Self.item)
             // A collection deleted here, on another device or by an automation leaves the sidebar.
             router.retainCollections(Set(collections.map(\.id)))
         } catch {
@@ -73,16 +71,12 @@ public final class SidebarViewModel {
         return section.title
     }
 
-    private static func items(for node: CollectionNode, parents: [String]) -> [CollectionItem] {
-        let name = node.collection.name.isEmpty ? "Untitled collection" : node.collection.name
-        let label = parents.last.map { "\(name), in \($0)" } ?? name
-        let item = CollectionItem(
+    private static func item(_ node: CollectionNode) -> CollectionItem {
+        CollectionItem(
             id: node.collection.id,
-            name: name,
+            name: node.collection.name.isEmpty ? "Untitled collection" : node.collection.name,
             symbolName: node.collection.symbolName ?? NavigationSection.collection(node.collection.id).symbolName,
-            depth: node.depth,
-            accessibilityLabel: label
+            depth: node.depth
         )
-        return [item] + node.children.flatMap { items(for: $0, parents: parents + [name]) }
     }
 }

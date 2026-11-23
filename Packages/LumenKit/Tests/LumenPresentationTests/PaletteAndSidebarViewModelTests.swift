@@ -102,7 +102,7 @@ struct CommandPaletteKeyboardTests {
 @MainActor
 @Suite("Sidebar model")
 struct SidebarViewModelTests {
-    @Test("collections in order with their place, smart-list badges, deleted collections leave")
+    @Test("collections in display order, smart-list badges, deleted collections leave")
     func collectionsAndBadges() async throws {
         let (services, runtime) = try await makeServices()
         let router = Router()
@@ -115,7 +115,6 @@ struct SidebarViewModelTests {
 
         #expect(sidebar.collections.map(\.name) == ["Work", "Meetings"])
         #expect(sidebar.collections.map(\.depth) == [0, 1])
-        #expect(sidebar.collections.map(\.accessibilityLabel) == ["Work", "Meetings, in Work"])
         #expect(sidebar.collections.first?.section == .collection(work.id))
         #expect(sidebar.title(for: .collection(work.id)) == "Work")
         #expect(sidebar.title(for: .tasks(.inbox)) == "Inbox")
@@ -127,6 +126,26 @@ struct SidebarViewModelTests {
         try await services.knowledge.collections.delete(meetings.id)
         #expect(await eventually { sidebar.collections.count == 1 })
         #expect(router.selection == .library)
+        await runtime.shutdown()
+    }
+}
+
+@MainActor
+@Suite("Library by collection")
+struct LibraryCollectionScopeTests {
+    @Test("a collection's item lists the documents filed in it")
+    func documentsInCollection() async throws {
+        let (services, runtime) = try await makeServices()
+        let work = try await services.knowledge.collections.create(name: "Work")
+        let library = LibraryViewModel(services: services)
+        library.filter = .collection(work.id)
+        let filed = await library.importDocument(data: Data("agenda".utf8), fileName: "agenda.txt", contentType: "public.plain-text")
+        library.filter = .all
+        _ = await library.importDocument(data: Data("loose".utf8), fileName: "loose.txt", contentType: "public.plain-text")
+        await library.load()
+        #expect(library.documents.count == 2)
+        #expect(library.documents(in: work.id).map(\.id) == [try #require(filed).id])
+        #expect(library.documents(in: NoteCollection.ID()).isEmpty)
         await runtime.shutdown()
     }
 }
