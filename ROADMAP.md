@@ -50,7 +50,7 @@ with tests, and keeps both CI jobs green. Status reflects what is in the reposit
   completed rows vanished from smart lists a quarter second after the tap.
 - [x] App icon (default, dark and tinted), accent color, launch screen in the palette background.
 
-## Phase 5 — Depth ⏳ (code complete; first green CI pending)
+## Phase 5 — Depth ✅
 
 - [x] Sync transport over CloudKit's private database (`CloudSyncTransport` + `CloudKitRecordDatabase`)
   and document file sync. **Switched off** until the build names an iCloud container
