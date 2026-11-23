@@ -65,7 +65,8 @@ with tests, and keeps both CI jobs green. Status reflects what is in the reposit
   Lock Screen accessories.
 - [x] Background refresh (`BGTaskScheduler`): automations, widget actions, sync, widget snapshot and
   document uploads while the app is closed.
-- [ ] Text extraction for PDFs imported before Phase 5 (needs a one-time backfill).
+- [x] Text for documents imported before their format could be read: a backfill runs once per
+  extraction version behind launch and in background refresh, reading only files on the device.
 
 ## Phase 6 — Platform reach
 

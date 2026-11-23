@@ -61,6 +61,42 @@ private struct ColdApp {
     }
 }
 
+/// A PDF extractor that is switched on after documents were imported.
+private final class SwitchableExtractor: DocumentTextExtractor {
+    private let enabled = Mutex(false)
+    func enable() { enabled.withLock { $0 = true } }
+    func canExtract(contentType: String) -> Bool { enabled.withLock { $0 } && contentType == DocumentContentType.pdf }
+    func extractText(from data: Data, contentType: String, limit: Int) async throws -> String? { "Invoice text" }
+}
+
+@Suite("Document text backfill in the runtime")
+struct DocumentTextBackfillRuntimeTests {
+    @Test("runs once per extraction version and finishes in background refresh")
+    func oncePerVersion() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("lumen-backfill-\(UUID().uuidString)")
+        let extractor = SwitchableExtractor()
+        var platform = PlatformServices.ephemeral()
+        platform.documentTextExtractors = [extractor]
+        let services = try await LumenBootstrap.make(
+            configuration: AppConfiguration(flavor: .test, dataDirectory: directory),
+            platform: platform, timeSource: ManualTimeSource(), calendar: .testUTC
+        )
+        let runtime = LumenRuntime(services: services)
+        let invoice = try await services.knowledge.documents.import(data: Data([0x25, 0x50, 0x44, 0x46]), fileName: "Invoice.pdf", contentType: DocumentContentType.pdf)
+        #expect(invoice.extractedText == nil)
+
+        extractor.enable()
+        let report = await runtime.performBackgroundRefresh()
+        #expect(report.completed.contains(.documentText))
+        // `start()` runs the backfill too; whichever ran, the text is there and the version is recorded.
+        #expect(await eventually { (try? await services.knowledge.documents.document(invoice.id))?.extractedText == "Invoice text" })
+        #expect(await eventually { await services.settings.value(LumenBootstrap.documentTextVersionKey) == LumenBootstrap.currentDocumentTextVersion })
+        #expect(await runtime.backfillDocumentText() == nil) // already done for this version
+        await runtime.shutdown()
+        try? FileManager.default.removeItem(at: directory) // best-effort cleanup of a scratch directory
+    }
+}
+
 @Suite("Background refresh")
 struct BackgroundRefreshTests {
     @Test("a refresh of a running app completes tasks checked on the widget before syncing")

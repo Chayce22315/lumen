@@ -19,6 +19,9 @@ public enum LumenBootstrap {
     /// after an update changes what is indexed.
     static let searchIndexVersionKey = SettingKey("search.indexVersion", default: 0)
     static let currentSearchIndexVersion = 1
+    /// Bumped when document text extraction learns a format, so older documents get their text.
+    public static let documentTextVersionKey = SettingKey("knowledge.documentTextVersion", default: 0)
+    public static let currentDocumentTextVersion = 1
 
     /// Every schema, in dependency order.
     static var schemas: [DatabaseSchema] {

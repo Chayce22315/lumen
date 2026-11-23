@@ -103,7 +103,8 @@ to its own container and the widget shows its "open Lumen" state.
 
 The app registers `app.lumen.refresh` (`BGTaskSchedulerPermittedIdentifiers`) and schedules it when
 it moves to the background; the work is `LumenRuntime.performBackgroundRefresh()` (automations,
-widget actions, sync, widget snapshot, document uploads), unit tested on Linux. To trigger it on a
+widget actions, sync, widget snapshot, document uploads, document text backfill), unit tested on
+Linux. To trigger it on a
 device while debugging: send the app to the background, pause in Xcode and run
 
 ```

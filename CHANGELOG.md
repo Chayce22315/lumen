@@ -67,7 +67,9 @@ All notable changes to Lumen are recorded here. The format follows
   conversations by title and message text with highlighted matches; attach notes and documents to
   a message (stored as references, re-read on each request, cut to a budget and labelled when cut).
 - Documents: QuickLook preview when the file is on the device; PDF text extraction (PDFKit) makes
-  newly imported PDFs searchable and attachable.
+  imported PDFs searchable and attachable. Documents imported before their format could be read
+  get their text once per extraction version (`DocumentService.extractMissingText`, run behind
+  launch and in background refresh; only files on the device are read).
 - Visual automation editor: conditions with typed rules and true/false branches, delays (up to 30
   days), adding steps after any output, connecting and disconnecting outputs, undo, refusals that
   explain why. The diagram moves steps by touch-and-hold then drag (snapped to a grid), connects by

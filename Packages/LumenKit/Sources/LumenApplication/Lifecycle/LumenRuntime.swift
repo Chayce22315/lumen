@@ -5,6 +5,7 @@ import LumenPlugins
 import LumenSearch
 import LumenIntelligence
 import LumenAutomation
+import LumenKnowledge
 
 /// Lifecycle of a running Lumen: activation of features, background engines and the work done
 /// when the app enters the foreground or background.
@@ -13,6 +14,8 @@ public actor LumenRuntime {
     private var started = false
     private var extensionWatcher: Task<Void, Never>?
     private var scheduler: Task<Void, Never>?
+    private var textBackfill: Task<Void, Never>?
+    private var isBackfillingText = false
     private var contributedTools: Set<String> = []
     private var contributedActions: Set<AutomationActionID> = []
     private let logger: Logger
@@ -75,7 +78,34 @@ public actor LumenRuntime {
         await services.organization.reminders.refreshEventWindow()
         await applyWidgetActions()
         await services.widgets.refresh()
+        // Reading files for text is slow and never needed for launch: it runs behind.
+        textBackfill = Task(priority: .utility) { [weak self] in
+            await self?.backfillDocumentText()
+        }
         logger.info("Runtime started")
+    }
+
+    /// Extracts text for documents imported before their format could be read, once per
+    /// extraction version. A run that stops early (cancelled, out of time) resumes next time.
+    @discardableResult
+    public func backfillDocumentText(shouldContinue: @escaping @Sendable () -> Bool = { !Task.isCancelled }) async -> DocumentService.TextBackfillResult? {
+        // One run at a time: a background launch starts one from `start()` while the refresh asks
+        // for another.
+        guard !isBackfillingText else { return nil }
+        isBackfillingText = true
+        defer { isBackfillingText = false }
+        let version = await services.settings.value(LumenBootstrap.documentTextVersionKey)
+        guard version < LumenBootstrap.currentDocumentTextVersion else { return nil }
+        do {
+            let result = try await services.knowledge.documents.extractMissingText(context: .system, shouldContinue: shouldContinue)
+            if result.isComplete {
+                try await services.settings.set(LumenBootstrap.currentDocumentTextVersion, for: LumenBootstrap.documentTextVersionKey)
+            }
+            return result
+        } catch {
+            services.errors.report(error, context: "Extracting document text")
+            return nil
+        }
     }
 
     /// Foreground: catch up on widget actions and time-based work.
@@ -101,6 +131,9 @@ public actor LumenRuntime {
         extensionWatcher = nil
         scheduler?.cancel()
         scheduler = nil
+        textBackfill?.cancel()
+        await textBackfill?.value
+        textBackfill = nil
         await services.automation.engine.stop()
         await services.documentFiles.stop()
         await services.widgets.stop()

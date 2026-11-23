@@ -214,6 +214,70 @@ public final class DocumentService: Sendable {
         return storage.url(for: document.storageKey)
     }
 
+    // MARK: - Text backfill
+
+    /// What `extractMissingText` did.
+    public struct TextBackfillResult: Sendable, Hashable {
+        /// Documents that gained text.
+        public var updated = 0
+        /// Documents whose file was read.
+        public var examined = 0
+        /// `false` when the run stopped early; the remaining documents are picked up next time.
+        public var isComplete = true
+
+        public init() {}
+    }
+
+    /// Extracts text for documents that have none but could have some now, such as PDFs imported
+    /// before a PDF extractor existed. Only files already on this device are read (nothing is
+    /// downloaded); the device that imported a document backfills it and sync carries the text.
+    /// Documents with no text layer (scanned PDFs) stay without text, so callers run this once per
+    /// extractor version rather than on every launch.
+    public func extractMissingText(
+        context: ActionContext = .system,
+        shouldContinue: @Sendable () -> Bool = { true }
+    ) async throws -> TextBackfillResult {
+        var result = TextBackfillResult()
+        let candidates = try await allDocuments().filter { document in
+            document.extractedText == nil
+                && (DocumentContentType.textExtractable.contains(document.contentType)
+                    || extractors.contains { $0.canExtract(contentType: document.contentType) })
+        }
+        for document in candidates {
+            guard shouldContinue() else {
+                result.isComplete = false
+                break
+            }
+            guard await storage.exists(key: document.storageKey) else { continue }
+            let data: Data
+            do {
+                data = try await storage.read(key: document.storageKey)
+            } catch {
+                // Recovered by skipping: the document keeps no text, as before, and is retried
+                // with the next extractor version.
+                logger.notice("Document file could not be read for text extraction", metadata: [
+                    "document": document.id.uuidString, "error": String(describing: type(of: error)),
+                ])
+                continue
+            }
+            result.examined += 1
+            guard let text = await extractText(from: data, contentType: document.contentType) else { continue }
+            do {
+                _ = try await mutate(document.id, context: context) { item, _ in
+                    if item.extractedText == nil { item.extractedText = text }
+                }
+                result.updated += 1
+            } catch DatabaseError.notFound {
+                // Deleted while its text was being extracted: nothing to update.
+                continue
+            }
+        }
+        if result.updated > 0 {
+            logger.info("Document text backfilled", metadata: ["documents": String(result.updated)])
+        }
+        return result
+    }
+
     // MARK: - Internals
 
     private struct ImportOutcome: Sendable {

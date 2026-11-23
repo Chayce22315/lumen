@@ -11,6 +11,7 @@ public struct BackgroundRefreshReport: Sendable, Hashable {
         case sync
         case widgets
         case documentFiles
+        case documentText
     }
 
     /// Steps that ran, in order.
@@ -27,7 +28,7 @@ public struct BackgroundRefreshReport: Sendable, Hashable {
 
 extension LumenRuntime {
     /// The work of a background app refresh: due automations, tasks checked on the widget, a sync
-    /// pass, the widget snapshot and document uploads, cheapest and most visible first. Starts the runtime if the system launched
+    /// pass, the widget snapshot, document uploads and document text backfill, cheapest and most visible first. Starts the runtime if the system launched
     /// the app in the background. Stops between steps when the task is cancelled (the system's
     /// time is up) or `deadline` has passed.
     @discardableResult
@@ -72,6 +73,13 @@ extension LumenRuntime {
             report.completed.append(.documentFiles)
         } else {
             report.skipped.append(.documentFiles)
+        }
+        // Text for documents imported before their format could be read; least urgent, last.
+        if mayContinue() {
+            await backfillDocumentText(shouldContinue: mayContinue)
+            report.completed.append(.documentText)
+        } else {
+            report.skipped.append(.documentText)
         }
 
         services.logging.logger("runtime").info("Background refresh finished", metadata: [

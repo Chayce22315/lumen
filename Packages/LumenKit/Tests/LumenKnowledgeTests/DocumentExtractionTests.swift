@@ -102,3 +102,59 @@ struct DocumentExtractionTests {
         #expect(try await inMemory.availableFileURL(for: document.id) == nil)
     }
 }
+
+/// A PDF extractor that can be switched on later, as when an app update adds PDF support, and
+/// that finds no text layer in "scanned" files.
+final class LateExtractor: DocumentTextExtractor {
+    static let scanned = Data([0x25, 0x50, 0x44, 0x46, 0x00])
+    private let enabled = Mutex(false)
+    private let reads = Mutex(0)
+
+    func enable() { enabled.withLock { $0 = true } }
+    var readCount: Int { reads.withLock { $0 } }
+
+    func canExtract(contentType: String) -> Bool {
+        enabled.withLock { $0 } && contentType == DocumentContentType.pdf
+    }
+
+    func extractText(from data: Data, contentType: String, limit: Int) async throws -> String? {
+        reads.withLock { $0 += 1 }
+        return data == Self.scanned ? nil : "Text of \(data.count) bytes"
+    }
+}
+
+@Suite("Document text backfill")
+struct DocumentTextBackfillTests {
+    @Test("documents imported before their format could be read get text when their file is here")
+    func backfill() async throws {
+        let environment = try await CoreTestEnvironment.make(schemas: [KnowledgeSchema.schema])
+        let storage = InMemoryDocumentStorage()
+        let extractor = LateExtractor()
+        let documents = DocumentService(
+            database: environment.database, storage: storage, extractors: [extractor],
+            events: environment.events, timeSource: environment.clock, logger: environment.logger("documents")
+        )
+        let report = try await documents.import(data: Data([0x25, 0x50, 0x44, 0x46, 0x01, 0x02]), fileName: "Report.pdf", contentType: DocumentContentType.pdf)
+        let scan = try await documents.import(data: LateExtractor.scanned, fileName: "Scan.pdf", contentType: DocumentContentType.pdf)
+        let remote = try await documents.import(data: Data([0x25, 0x50, 0x44, 0x46, 0x09]), fileName: "Elsewhere.pdf", contentType: DocumentContentType.pdf)
+        let photo = try await documents.import(data: Data([0xFF, 0xD8, 0xFF]), fileName: "Photo.jpg", contentType: DocumentContentType.jpeg)
+        #expect(report.extractedText == nil && scan.extractedText == nil)
+        // A document synced from another device whose file hasn't been downloaded.
+        try await storage.remove(key: remote.storageKey)
+
+        extractor.enable()
+        // Out of time before the first document: nothing read, the run is incomplete.
+        let stopped = try await documents.extractMissingText(shouldContinue: { false })
+        #expect(!stopped.isComplete && stopped.examined == 0 && stopped.updated == 0)
+        #expect(extractor.readCount == 0)
+
+        let result = try await documents.extractMissingText()
+        #expect(result.isComplete)
+        #expect(result.examined == 2) // the report and the scan; not the missing file or the photo
+        #expect(result.updated == 1)
+        #expect(try await documents.document(report.id)?.extractedText == "Text of 6 bytes")
+        #expect(try await documents.document(scan.id)?.extractedText == nil)
+        #expect(try await documents.document(remote.id)?.extractedText == nil)
+        #expect(try await documents.document(photo.id)?.extractedText == nil)
+    }
+}
