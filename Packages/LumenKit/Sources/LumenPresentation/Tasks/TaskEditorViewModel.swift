@@ -15,6 +15,8 @@ public final class TaskEditorViewModel {
     public private(set) var subtasks: [TaskItem] = []
     public private(set) var blockers: [TaskItem] = []
     public private(set) var projects: [Project] = []
+    /// Completed focus sessions on this task.
+    public private(set) var focusTotals: FocusTotals = .zero
     public private(set) var isSaving = false
     public private(set) var error: ErrorPresentation?
 
@@ -50,6 +52,7 @@ public final class TaskEditorViewModel {
             subtasks = try await tasks.subtasks(of: taskID)
             blockers = try await tasks.tasks(TaskQuery()).filter { task.blockedBy.contains($0.id) }
             projects = try await services.organization.projects.projects(statuses: [.planned, .active, .onHold])
+            focusTotals = try await services.focus.service.totals(forTask: taskID)
             state = .loaded(task)
         } catch {
             state = .failed(ErrorPresentation.from(error))
@@ -150,6 +153,13 @@ public final class TaskEditorViewModel {
         } catch {
             self.error = ErrorPresentation.from(error)
         }
+    }
+
+    /// "2 sessions · 45 minutes focused"; `nil` before the first completed session.
+    public var focusSummary: String? {
+        guard focusTotals.sessions > 0 else { return nil }
+        let sessions = focusTotals.sessions == 1 ? "1 session" : "\(focusTotals.sessions) sessions"
+        return "\(sessions) · \(FocusIntegration.durationText(focusTotals.focusedDuration)) focused"
     }
 
     /// Deletes the task. Returns `true` when the editor should close.
