@@ -59,17 +59,19 @@ public final class AnalyticsService: Sendable {
         logger.notice(enabled ? "Analytics collection enabled" : "Analytics collection disabled")
     }
 
-    /// Deletes every recorded event and every daily count, then publishes
+    /// Deletes every recorded event, daily count and daily total, then publishes
     /// `AnalyticsEvents.dataErased`. Collection continues according to the setting.
     public func eraseAllData(context: ActionContext = .user) async throws {
         let deleted = try await database.write { db in
             let events = try AnalyticsEventRepository.deleteAll(in: db)
             let counts = try DailyCountRepository.deleteAll(in: db)
-            return ErasedRows(events: events, dailyCounts: counts)
+            let totals = try DailyTotalRepository.deleteAll(in: db)
+            return ErasedRows(events: events, dailyCounts: counts, dailyTotals: totals)
         }
         logger.notice("Erased all analytics data", metadata: [
             "events": String(deleted.events),
             "dailyCounts": String(deleted.dailyCounts),
+            "dailyTotals": String(deleted.dailyTotals),
         ])
         events.publish(context.event(AnalyticsEvents.dataErased, at: timeSource.now()))
     }
@@ -119,6 +121,21 @@ public final class AnalyticsService: Sendable {
             current: Double(rows.total(names: nil, in: range)),
             previous: Double(rows.total(names: nil, in: previous))
         )
+    }
+
+    // MARK: - Measures
+
+    /// The sum of `measure` (an `AnalyticsMeasure.id`) over `range`; 0 when nothing was recorded.
+    public func total(of measure: String, in range: DayRange) async throws -> Double {
+        try await dailyTotals(of: measure, in: range).total
+    }
+
+    /// `measure` per day of `range`, zero-filled.
+    public func dailyTotals(of measure: String, in range: DayRange) async throws -> TimeSeries {
+        let values = try await database.read { db in
+            try DailyTotalRepository.totals(measure: measure, in: range, in: db)
+        }
+        return SeriesBuilder.daily(values, in: range)
     }
 
     // MARK: - Distributions
@@ -176,4 +193,5 @@ public final class AnalyticsService: Sendable {
 private struct ErasedRows: Sendable {
     let events: Int
     let dailyCounts: Int
+    let dailyTotals: Int
 }

@@ -30,5 +30,15 @@ enum AnalyticsSchema {
             ) WITHOUT ROWID;
             CREATE INDEX analytics_daily_counts_name ON analytics_daily_counts (name, day);
             """),
+        .sql("0002_daily_totals", """
+            CREATE TABLE analytics_daily_totals (
+                day TEXT NOT NULL,
+                measure TEXT NOT NULL,
+                actor TEXT NOT NULL,
+                total REAL NOT NULL CHECK (total >= 0),
+                PRIMARY KEY (day, measure, actor)
+            ) WITHOUT ROWID;
+            CREATE INDEX analytics_daily_totals_measure ON analytics_daily_totals (measure, day);
+            """),
     ])
 }

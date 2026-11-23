@@ -11,7 +11,9 @@ import LumenCore
 /// events of analytics' own module are ignored, and recording the same event twice is a no-op.
 ///
 /// Raw events are kept for `purge(rawEventsOlderThan:)`'s retention window; daily counts are
-/// kept until the user erases analytics data, so long-term statistics survive retention.
+/// kept until the user erases analytics data, so long-term statistics survive retention. Events
+/// that carry a quantity for one of `measures` also add it to that measure's daily total, in the
+/// same transaction (and, like counts, only once per event).
 public actor AnalyticsCollector {
     /// What happened to one event.
     public enum RecordOutcome: String, Sendable, Hashable, Codable {
@@ -44,6 +46,7 @@ public actor AnalyticsCollector {
     private let timeSource: any TimeSource
     private let calendar: Calendar
     private let logger: Logger
+    private let measures: [AnalyticsMeasure]
     private var consumer: Task<Void, Never>?
     private var totals = Statistics()
 
@@ -53,7 +56,8 @@ public actor AnalyticsCollector {
         settings: SettingsStore,
         timeSource: any TimeSource,
         calendar: Calendar,
-        logger: Logger
+        logger: Logger,
+        measures: [AnalyticsMeasure] = []
     ) {
         self.database = database
         self.events = events
@@ -61,6 +65,7 @@ public actor AnalyticsCollector {
         self.timeSource = timeSource
         self.calendar = calendar
         self.logger = logger
+        self.measures = measures
     }
 
     deinit {
@@ -113,11 +118,15 @@ public actor AnalyticsCollector {
             return .collectionDisabled
         }
         let record = AnalyticsEventRecord(event: event, calendar: calendar)
+        let quantities = measures.compactMap { measure in measure.amount(in: event).map { (measure: measure.id, amount: $0) } }
         let inserted: Bool
         do {
             inserted = try await database.write { db in
                 guard try AnalyticsEventRepository.insert(record, in: db) else { return false }
                 try DailyCountRepository.increment(day: record.day, name: record.name, actor: record.actor, in: db)
+                for quantity in quantities {
+                    try DailyTotalRepository.add(quantity.amount, day: record.day, measure: quantity.measure, actor: record.actor, in: db)
+                }
                 return true
             }
         } catch {
