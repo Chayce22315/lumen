@@ -74,7 +74,8 @@ struct FocusSessionRulesTests {
         #expect(session.focusedDuration(at: start.addingTimeInterval(9_999)) == 600)
         #expect(throws: OrganizationError.focusSessionEnded) { try FocusSessionRules.paused(session, at: start.addingTimeInterval(1_100)) }
         #expect(throws: OrganizationError.focusSessionEnded) { try FocusSessionRules.resumed(session, at: start.addingTimeInterval(1_100)) }
-        #expect(throws: OrganizationError.focusSessionEnded) { try FocusSessionRules.ended(session, as: .cancelled, at: start.addingTimeInterval(1_100)) }
+        // Ending again changes nothing: the first outcome stands.
+        #expect(try FocusSessionRules.ended(session, as: .cancelled, at: start.addingTimeInterval(1_100)) == session)
     }
 
     @Test("a countdown that ran out completes at the instant it reached zero")
@@ -190,6 +191,9 @@ struct FocusServiceTests {
         #expect(ending.completedTask == nil)
         #expect(try await relaunched.activeSession() == nil)
         await #expect(throws: OrganizationError.focusSessionEnded) { try await relaunched.pause(session.id) }
+        // Finishing or cancelling an ended session is a no-op that publishes nothing.
+        #expect(try await relaunched.cancel(session.id).phase == .completed)
+        #expect(try await relaunched.finish(session.id).completedTask == nil)
         let unknown = FocusSession.ID()
         await #expect(throws: OrganizationError.focusSessionNotFound(unknown)) { try await relaunched.pause(unknown) }
 

@@ -68,8 +68,10 @@ public enum FocusSessionRules {
     /// Ends an active session now. A pause in progress is folded into `pausedDuration`, so the
     /// focused time stops where the pause began. A session whose countdown already ran out is
     /// returned completed at that instant, whatever `outcome` was asked for: it was over by then.
+    /// Ending is idempotent: a session that already ended is returned as it is (two devices'
+    /// buttons, or a button and the countdown, may race to end it).
     public static func ended(_ session: FocusSession, as outcome: FocusOutcome, at now: Date) throws -> FocusSession {
-        guard session.isActive else { throw OrganizationError.focusSessionEnded }
+        guard session.isActive else { return session }
         let current = settled(session, at: now)
         guard current.isActive else { return current }
         var ended = current

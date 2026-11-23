@@ -67,7 +67,8 @@ public final class FocusService: Sendable {
     }
 
     /// Ends the session as completed now (or at the instant its countdown ran out, if that was
-    /// earlier), completing its task when the session asks for it.
+    /// earlier), completing its task when the session asks for it. A session that already ended
+    /// is returned unchanged, so racing buttons (or a button and the countdown) are harmless.
     @discardableResult
     public func finish(_ id: FocusSession.ID, context: ActionContext = .user) async throws -> FocusEnding {
         try await transition(id, context: context) { session, now in try FocusSessionRules.ended(session, as: .completed, at: now) }
