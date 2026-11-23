@@ -13,6 +13,7 @@ struct AssistantView: View {
     let model: AppModel
     @State private var conversations: ConversationsViewModel
     @State private var isConfigured = true
+    @FocusState private var searchFocused: Bool
 
     init(services: LumenServices, model: AppModel) {
         self.services = services
@@ -26,6 +27,11 @@ struct AssistantView: View {
             .lumenScreenBackground()
             .navigationTitle("Assistant")
             .searchable(text: $conversations.searchQuery, prompt: "Search conversations")
+            .searchFocused($searchFocused)
+            .onChange(of: model.router.searchFocusRequest, initial: true) {
+                // ⌘F
+                if model.router.claimSearchFocus(in: .assistant) { searchFocused = true }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { Task { await startConversation() } } label: { Image(systemName: "square.and.pencil") }

@@ -25,10 +25,8 @@ struct SheetView: View {
             SettingsView(services: services, model: model, initialSection: section)
                 .presentationCornerRadius(LumenRadius.sheet)
         case .commandPalette:
-            NavigationStack {
-                SearchView(services: services, model: model)
-            }
-            .presentationDetents([.large])
+            CommandPaletteView(services: services, model: model)
+                .presentationDetents([.large])
         }
     }
 }
