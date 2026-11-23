@@ -18,7 +18,7 @@ future milestone; everything it needs that can be prepared for free is already i
 
 | Feature | Simulator | iPhone, free Apple ID | Paid program |
 | --- | --- | --- | --- |
-| Tasks, projects, calendar, notes, documents, search, automations, insights, assistant (with your API key) | ✅ | ✅ | ✅ |
+| Tasks, projects, calendar, notes, documents, search, automations, insights, assistant (with your API key), plugins, iPad sidebar and keyboard shortcuts | ✅ | ✅ | ✅ |
 | App Shortcuts, local notifications, background refresh, system calendars, Keychain | ✅ | ✅ | ✅ |
 | Widgets with live data (App Group) | ✅ | ✅ if your team can provision App Groups, otherwise widgets show "Open Lumen" | ✅ |
 | iCloud sync | — | — (personal teams can't use iCloud) | ✅ after the steps in `DEVELOPMENT.md` |

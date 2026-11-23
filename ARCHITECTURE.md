@@ -49,7 +49,7 @@ Dependencies point strictly downward. Engines never import each other.
 | `LumenAutomation` | Workflow graphs, triggers, conditions, templating, execution, scheduling, run history, recovery | Core |
 | `LumenAnalytics` | Local event collection, daily aggregates, productivity insights, comparisons, reports | Core |
 | `LumenSync` | Local-first sync over the change log: per-field LWW entity states, transport abstraction, the cloud transport over `CloudRecordDatabase`, document file sync by SHA-256, conflict records, retry queue, remote-reset recovery, history | Core |
-| `LumenPlugins` | Plugin manifests, capability declarations, permission grants, lifecycle | Core, extension protocols of the engines it hosts |
+| `LumenPlugins` | Plugin manifests, capability declarations, permission grants, lifecycle, packages, signatures, trust, catalogs | Core, extension protocols of the engines it hosts |
 | `LumenWidgetData` | The snapshot the widget renders, the widget action queue, the shared App Group location | — |
 | `LumenApplication` | Composition root, bootstrap and shutdown, built-in features registered as plugins (assistant tools, automation actions and triggers, search sources, sync handlers, commands), Home, reminders, widget snapshot, deep links | all engines |
 | `LumenPresentation` | `@Observable` view models for every screen, router, date labels | Application |
@@ -153,6 +153,19 @@ path; list/detail sections keep their selection first and the detail stack after
 shortcuts are `AppCommand` values performed by `AppModel.perform` → `Router.perform`, so the
 keyboard is tested on Linux like every other way into the app.
 
+### D11 — Third-party plugins are declarative packages
+
+*Alternatives:* downloaded code (not allowed on iOS); a scripting runtime such as JavaScriptCore
+(a large attack surface for little gain).
+
+*Chosen:* signed JSON packages (`PLUGINS.md`) whose contributions — automation templates, commands,
+assistant shortcuts, HTTPS webhook steps — are executed by Lumen's own engines through the same
+extension points the built-in features use. `LumenPlugins` owns the format, validation, trust and
+lifecycle (`PluginPackageManager` over `PluginHost`) without importing another engine;
+`LumenApplication` supplies the integration that validates templates with the automation engine,
+resolves deep links and removes owned entities on uninstall. Capabilities are granted one by one
+and a plugin activates once its required capabilities are granted.
+
 ## 4. Data flow
 
 ```
@@ -194,7 +207,10 @@ the interface as non-blocking banners.
   (requests go directly to that provider) or a sync transport.
 - Log messages never contain user content.
 - Plugins declare capabilities; each capability is granted explicitly by the user and enforced
-  by the permission-checked context the plugin receives.
+  by the permission-checked context the plugin receives. Third-party packages are validated
+  strictly before anything is stored, their publisher key is pinned on first install, network
+  access is granted per host, packages are re-verified at every launch, and no package text is
+  logged.
 
 ## 8. The assistant and automations act through the same services
 

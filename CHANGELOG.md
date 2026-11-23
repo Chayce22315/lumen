@@ -95,12 +95,24 @@ All notable changes to Lumen are recorded here. The format follows
   the window is resized. Pointer hover effects.
 - Keyboard shortcuts, listed in iPad's ⌘-hold overlay: ⌘K command palette, ⌘N new task, ⌘⇧N new
   note, ⌘F find, ⌘, Settings, ⌘1–⌘5 sections. In the palette, ↑/↓ choose a row, Return opens it.
+- Third-party plugins: install `.lumenplugin` packages from Files, the share sheet,
+  `lumen://plugin/install?url=…` links or catalogs you add. An install review shows the publisher,
+  the signature and its key fingerprint, every permission in plain language, network addresses,
+  everything the plugin adds (with step-by-step automation previews) and what an update changes;
+  grant or deny each permission and address individually. Settings › Plugins turns plugins off,
+  reviews permissions again, shows source and manifest, and uninstalls them (removing the
+  automations added from them). Plugins add automation templates, commands, assistant shortcuts and
+  HTTPS webhook steps; they never run code. Format and trust rules: `PLUGINS.md`.
 - Free release setup (no paid Apple Developer Program needed): signing, versions and identifiers
   in `App/Configuration/Lumen.xcconfig` with a git-ignored `Signing.local.xcconfig` for your team
   and bundle prefix; the App Group follows the prefix and can be switched off for teams that can't
   provision it; privacy manifests with an audit script; export-compliance key; privacy policy;
   store listing drafts; screenshot capture from sample content in UI tests; a Release device build
   and unsigned IPA on every CI run. See `RELEASE.md`.
+
+### Changed
+- Third-party plugins are enabled by default (`FeatureFlag.defaults`); the flag remains a kill
+  switch.
 
 ### Fixed
 - Editing an existing automation flattened its graph into a linear chain (dropping branches), turned

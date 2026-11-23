@@ -33,4 +33,5 @@ and on your own iPhone with a free Apple ID — see [RELEASE.md](RELEASE.md).
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for requirements and conventions,
 [ARCHITECTURE.md](ARCHITECTURE.md) for how the system fits together,
-[ROADMAP.md](ROADMAP.md) for what's next and [FILE_STRUCTURE.md](FILE_STRUCTURE.md) for the map.
+[ROADMAP.md](ROADMAP.md) for what's next, [FILE_STRUCTURE.md](FILE_STRUCTURE.md) for the map and
+[PLUGINS.md](PLUGINS.md) for writing plugins.

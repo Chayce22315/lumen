@@ -20,6 +20,9 @@ Nothing, unless you turn on one of these:
   your device's Keychain.
 - **iCloud sync.** In builds with iCloud sync turned on, your data is stored in your own private
   iCloud database, which only your Apple Account can read. Lumen's developer cannot access it.
+- **Plugins you install.** A plugin can contact a web address only if its manifest declares the
+  host and you grant that permission during installation; you can revoke it at any time. Plugins
+  are data run by Lumen itself, never code.
 - **System features you use.** Calendar access (to show and create events in your system
   calendars), notifications, widgets and Shortcuts are handled by iOS on your device.
 

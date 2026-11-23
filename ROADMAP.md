@@ -81,4 +81,7 @@ distribution are an optional future milestone, never a blocker; no feature depen
   tasks, projects, notes, conversations and automations; keyboard shortcuts (⌘K palette with arrow
   and Return selection, ⌘N, ⌘⇧N, ⌘F, ⌘,, ⌘1–⌘5) routed through the router and tested on Linux.
 - Spotlight indexing of tasks and notes, Live Activities for focus sessions.
-- Third-party plugin distribution and review flow (the host and permission model exist).
+- [x] Third-party plugin distribution and review flow: signed declarative `.lumenplugin` packages,
+  trust on first use per publisher key, install review with per-capability and per-host grants and
+  update diffs; Files, install-link and catalog channels (no built-in catalog, no server).
+  See `PLUGINS.md`.

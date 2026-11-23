@@ -30,7 +30,7 @@ Release/metadata/en-US/       Store listing drafts (name, subtitle, description,
 | --- | --- | ---: | ---: |
 | `CSQLite` | System SQLite module map (Linux only) | 0 | — |
 | `LumenAnalytics` | Event collection, aggregates, streaks, insights, reports | 30 | 10 |
-| `LumenApplication` | Composition root, runtime, integrations, Home, reminders, widgets, deep links | 25 | 7 |
+| `LumenApplication` | Composition root, runtime, integrations, Home, reminders, widgets, deep links | 29 | 8 |
 | `LumenAutomation` | Workflows, triggers, conditions, templates, executor, scheduler | 38 | 16 |
 | `LumenCore` | Event bus, action context, settings, secrets (Keychain), errors, configuration | 8 | 3 |
 | `LumenDesignTokens` | Palette, spacing, radii, type ramp, motion values, contrast math | 5 | 1 |
@@ -40,8 +40,8 @@ Release/metadata/en-US/       Store listing drafts (name, subtitle, description,
 | `LumenNotifications` | Inbox, preferences, quiet hours, UserNotifications delivery | 6 | 2 |
 | `LumenOrganization` | Tasks, projects, calendars, agenda, reminders, quick capture | 26 | 5 |
 | `LumenPersistence` | SQLite connection, typed rows, migrations, change log | 9 | 3 |
-| `LumenPlugins` | Manifests, capabilities, extension registry, plugin host | 7 | 1 |
-| `LumenPresentation` | @Observable view models, router, sidebar sections, commands, date labels | 34 | 9 |
+| `LumenPlugins` | Manifests, capabilities, extension registry, plugin host, package format, signatures and trust, install/update/uninstall, catalogs | 28 | 5 |
+| `LumenPresentation` | @Observable view models, router, sidebar sections, commands, date labels | 40 | 10 |
 | `LumenSearch` | FTS5 index, ranking, snippets, indexer, history, command registry | 11 | 2 |
 | `LumenSync` | Entity-state CRDT, shadows, conflicts, sync engine, cloud transport, document file sync | 10 | 5 |
 | `LumenTestSupport` | Test clock, calendar, in-memory environment, event recorder | 3 | — |
@@ -53,9 +53,9 @@ Release/metadata/en-US/       Store listing drafts (name, subtitle, description,
 | --- | --- | ---: | ---: |
 | `LumenDesignSystem` | SwiftUI colors, typography, motion, components | 11 | — |
 | `LumenPlatform` | EventKit (read/write), CloudKit adapter, PDFKit extraction, background refresh, Keychain/UserNotifications wiring, WidgetKit reloads, shared services | 7 | — |
-| `LumenUI` | Screens and navigation | 33 | — |
+| `LumenUI` | Screens and navigation | 38 | — |
 
-**Totals:** 379 source files and 108 test files in the packages, plus 7 in the app targets (app, widget, UI tests).
+**Totals:** 415 source files and 114 test files in the packages, plus 7 in the app targets (app, widget, UI tests).
 
 ## Module layout
 
@@ -85,6 +85,7 @@ Packages/LumenKit/Sources/LumenApplication/Home/  (4)
 Packages/LumenKit/Sources/LumenApplication/Integrations/  (11)
 Packages/LumenKit/Sources/LumenApplication/Lifecycle/  (4)
 Packages/LumenKit/Sources/LumenApplication/Navigation/  (1)
+Packages/LumenKit/Sources/LumenApplication/Plugins/  (4)
 Packages/LumenKit/Sources/LumenAutomation/Events/  (2)
 Packages/LumenKit/Sources/LumenAutomation/Logic/  (11)
 Packages/LumenKit/Sources/LumenAutomation/Models/  (11)
@@ -133,9 +134,11 @@ Packages/LumenKit/Sources/LumenOrganization/Services/  (6)
 Packages/LumenKit/Sources/LumenPersistence/Changes/  (1)
 Packages/LumenKit/Sources/LumenPersistence/Core/  (6)
 Packages/LumenKit/Sources/LumenPersistence/Schema/  (2)
-Packages/LumenKit/Sources/LumenPlugins/Models/  (3)
+Packages/LumenKit/Sources/LumenPlugins/Logic/  (10)
+Packages/LumenKit/Sources/LumenPlugins/Models/  (8)
+Packages/LumenKit/Sources/LumenPlugins/Repositories/  (1)
 Packages/LumenKit/Sources/LumenPlugins/Schema/  (1)
-Packages/LumenKit/Sources/LumenPlugins/Services/  (3)
+Packages/LumenKit/Sources/LumenPlugins/Services/  (8)
 Packages/LumenKit/Sources/LumenPresentation/App/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Assistant/  (3)
 Packages/LumenKit/Sources/LumenPresentation/Automations/  (7)
@@ -145,6 +148,7 @@ Packages/LumenKit/Sources/LumenPresentation/Insights/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Library/  (3)
 Packages/LumenKit/Sources/LumenPresentation/Navigation/  (4)
 Packages/LumenKit/Sources/LumenPresentation/Notifications/  (1)
+Packages/LumenKit/Sources/LumenPresentation/Plugins/  (6)
 Packages/LumenKit/Sources/LumenPresentation/Search/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Settings/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Support/  (3)
@@ -162,7 +166,7 @@ Packages/LumenKit/Sources/LumenSync/Services/  (2)
 Packages/LumenKit/Sources/LumenTestSupport/  (3)
 Packages/LumenKit/Sources/LumenWidgetData/  (2)
 Packages/LumenKit/Tests/LumenAnalyticsTests/  (10)
-Packages/LumenKit/Tests/LumenApplicationTests/  (7)
+Packages/LumenKit/Tests/LumenApplicationTests/  (8)
 Packages/LumenKit/Tests/LumenAutomationTests/  (16)
 Packages/LumenKit/Tests/LumenCoreTests/  (3)
 Packages/LumenKit/Tests/LumenDesignTokensTests/  (1)
@@ -173,8 +177,8 @@ Packages/LumenKit/Tests/LumenKnowledgeTests/  (21)
 Packages/LumenKit/Tests/LumenNotificationsTests/  (2)
 Packages/LumenKit/Tests/LumenOrganizationTests/  (5)
 Packages/LumenKit/Tests/LumenPersistenceTests/  (3)
-Packages/LumenKit/Tests/LumenPluginsTests/  (1)
-Packages/LumenKit/Tests/LumenPresentationTests/  (9)
+Packages/LumenKit/Tests/LumenPluginsTests/  (5)
+Packages/LumenKit/Tests/LumenPresentationTests/  (10)
 Packages/LumenKit/Tests/LumenSearchTests/  (2)
 Packages/LumenKit/Tests/LumenSyncTests/  (5)
 Packages/LumenInterface/Sources/LumenDesignSystem/Components/  (6)
@@ -188,6 +192,7 @@ Packages/LumenInterface/Sources/LumenUI/Home/  (2)
 Packages/LumenInterface/Sources/LumenUI/Insights/  (1)
 Packages/LumenInterface/Sources/LumenUI/Library/  (3)
 Packages/LumenInterface/Sources/LumenUI/Notifications/  (1)
+Packages/LumenInterface/Sources/LumenUI/Plugins/  (5)
 Packages/LumenInterface/Sources/LumenUI/Root/  (5)
 Packages/LumenInterface/Sources/LumenUI/Search/  (2)
 Packages/LumenInterface/Sources/LumenUI/Settings/  (3)
