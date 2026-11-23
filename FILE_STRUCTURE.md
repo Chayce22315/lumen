@@ -7,7 +7,7 @@ module descriptions are written by hand.
 Lumen.xcodeproj/              Xcode project (synchronized folders, shared scheme)
 App/Lumen/                    App target: entry point, App Intents, asset catalog (icon, colors)
 App/LumenWidgets/             Widget extension: Today widget (interactive), Lock Screen widgets
-App/LumenUITests/             XCUITest smoke tests: launch, capture, completion, search
+App/LumenUITests/             XCUITest smoke tests (iPhone), iPad list/detail test, screenshots
 App/Configuration/            Base xcconfig (versions, signing, identifiers), Info.plists, entitlements
 Packages/LumenKit/            Portable modules (Linux-testable)
 Packages/LumenInterface/      SwiftUI modules (Apple only)
@@ -41,7 +41,7 @@ Release/metadata/en-US/       Store listing drafts (name, subtitle, description,
 | `LumenOrganization` | Tasks, projects, calendars, agenda, reminders, quick capture | 26 | 5 |
 | `LumenPersistence` | SQLite connection, typed rows, migrations, change log | 9 | 3 |
 | `LumenPlugins` | Manifests, capabilities, extension registry, plugin host | 7 | 1 |
-| `LumenPresentation` | @Observable view models, router, date labels | 31 | 7 |
+| `LumenPresentation` | @Observable view models, router, sidebar sections, commands, date labels | 34 | 9 |
 | `LumenSearch` | FTS5 index, ranking, snippets, indexer, history, command registry | 11 | 2 |
 | `LumenSync` | Entity-state CRDT, shadows, conflicts, sync engine, cloud transport, document file sync | 10 | 5 |
 | `LumenTestSupport` | Test clock, calendar, in-memory environment, event recorder | 3 | — |
@@ -53,9 +53,9 @@ Release/metadata/en-US/       Store listing drafts (name, subtitle, description,
 | --- | --- | ---: | ---: |
 | `LumenDesignSystem` | SwiftUI colors, typography, motion, components | 11 | — |
 | `LumenPlatform` | EventKit (read/write), CloudKit adapter, PDFKit extraction, background refresh, Keychain/UserNotifications wiring, WidgetKit reloads, shared services | 7 | — |
-| `LumenUI` | Screens and navigation | 31 | — |
+| `LumenUI` | Screens and navigation | 33 | — |
 
-**Totals:** 374 source files and 106 test files in the packages, plus 6 in the app targets (app, widget, UI tests).
+**Totals:** 379 source files and 108 test files in the packages, plus 7 in the app targets (app, widget, UI tests).
 
 ## Module layout
 
@@ -143,7 +143,7 @@ Packages/LumenKit/Sources/LumenPresentation/Calendar/  (2)
 Packages/LumenKit/Sources/LumenPresentation/Home/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Insights/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Library/  (3)
-Packages/LumenKit/Sources/LumenPresentation/Navigation/  (1)
+Packages/LumenKit/Sources/LumenPresentation/Navigation/  (4)
 Packages/LumenKit/Sources/LumenPresentation/Notifications/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Search/  (1)
 Packages/LumenKit/Sources/LumenPresentation/Settings/  (1)
@@ -174,7 +174,7 @@ Packages/LumenKit/Tests/LumenNotificationsTests/  (2)
 Packages/LumenKit/Tests/LumenOrganizationTests/  (5)
 Packages/LumenKit/Tests/LumenPersistenceTests/  (3)
 Packages/LumenKit/Tests/LumenPluginsTests/  (1)
-Packages/LumenKit/Tests/LumenPresentationTests/  (7)
+Packages/LumenKit/Tests/LumenPresentationTests/  (9)
 Packages/LumenKit/Tests/LumenSearchTests/  (2)
 Packages/LumenKit/Tests/LumenSyncTests/  (5)
 Packages/LumenInterface/Sources/LumenDesignSystem/Components/  (6)
@@ -188,8 +188,8 @@ Packages/LumenInterface/Sources/LumenUI/Home/  (2)
 Packages/LumenInterface/Sources/LumenUI/Insights/  (1)
 Packages/LumenInterface/Sources/LumenUI/Library/  (3)
 Packages/LumenInterface/Sources/LumenUI/Notifications/  (1)
-Packages/LumenInterface/Sources/LumenUI/Root/  (4)
-Packages/LumenInterface/Sources/LumenUI/Search/  (1)
+Packages/LumenInterface/Sources/LumenUI/Root/  (5)
+Packages/LumenInterface/Sources/LumenUI/Search/  (2)
 Packages/LumenInterface/Sources/LumenUI/Settings/  (3)
 Packages/LumenInterface/Sources/LumenUI/Tasks/  (6)
 ```

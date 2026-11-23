@@ -203,7 +203,11 @@ struct OtherViewModelTests {
         _ = try await services.knowledge.notes.create(title: "Quarterly planning", body: "Goals and budget")
         let palette = CommandPaletteViewModel(services: services, debounce: 0)
         palette.query = "quarter"
-        #expect(await eventually { palette.results?.results.first?.title == "Quarterly planning" })
+        // The note reaches the index through the event-driven indexer; search again until it has.
+        #expect(await eventually {
+            await palette.search()
+            return palette.results?.results.first?.title == "Quarterly planning"
+        })
         palette.query = "new task"
         #expect(await eventually { palette.results?.commands.first?.command.id == "create.task" })
         await runtime.shutdown()

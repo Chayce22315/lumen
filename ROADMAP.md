@@ -75,8 +75,10 @@ simulator and free personal-device signing, unsigned Release IPA from CI, privac
 export compliance, privacy policy, store listing and screenshots prepared. TestFlight and App Store
 distribution are an optional future milestone, never a blocker; no feature depends on them.
 
-## Phase 6 — Platform reach
+## Phase 6 — Platform reach ⏳
 
-- iPad layouts (sidebar navigation), keyboard shortcuts for the command palette.
+- [x] iPad layouts: sidebar navigation (sidebar-adaptable `TabView`), list and detail side by side for
+  tasks, projects, notes, conversations and automations; keyboard shortcuts (⌘K palette with arrow
+  and Return selection, ⌘N, ⌘⇧N, ⌘F, ⌘,, ⌘1–⌘5) routed through the router and tested on Linux.
 - Spotlight indexing of tasks and notes, Live Activities for focus sessions.
 - Third-party plugin distribution and review flow (the host and permission model exist).

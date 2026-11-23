@@ -142,6 +142,17 @@ written atomically under `flock`) and updates the snapshot optimistically; the a
 queue through `TaskService` in `LumenRuntime.applyWidgetActions()` on start, on activation and in
 background refresh.
 
+### D10 — One router, two layouts
+
+`Router` (LumenPresentation) is the single source of navigation truth. The root is a
+sidebar-adaptable `TabView` whose structure follows `Router.layout`: `.tabBar` (iPhone, compact
+iPad: five tabs, each a stack) or `.sidebar` (regular-width iPad: `NavigationSection` items,
+list/detail sections as `NavigationSplitView`). Each section's place is one `[AppDestination]`
+path; list/detail sections keep their selection first and the detail stack after it, so
+`setLayout(_:)` converts state across size-class changes without loss. Menu commands and keyboard
+shortcuts are `AppCommand` values performed by `AppModel.perform` → `Router.perform`, so the
+keyboard is tested on Linux like every other way into the app.
+
 ## 4. Data flow
 
 ```

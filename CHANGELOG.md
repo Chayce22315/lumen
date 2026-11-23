@@ -88,6 +88,13 @@ All notable changes to Lumen are recorded here. The format follows
 - App icon (default, dark and tinted appearances) rendered by `Tools/AppIcon/render.py`; accent
   color and a launch screen in the palette's background color, so launch no longer flashes white.
 
+- iPad: a sidebar (sidebar-adaptable tab view) with Home, Plan's smart lists with open-task counts,
+  Projects, Calendar, Automations, the Library and its collections, the Assistant, Insights, Search
+  and Settings. Task lists, projects, notes, conversations and automations show their list beside
+  the selected item. iPhone and compact-width iPad keep the tab bar; your place carries across when
+  the window is resized. Pointer hover effects.
+- Keyboard shortcuts, listed in iPad's ⌘-hold overlay: ⌘K command palette, ⌘N new task, ⌘⇧N new
+  note, ⌘F find, ⌘, Settings, ⌘1–⌘5 sections. In the palette, ↑/↓ choose a row, Return opens it.
 - Free release setup (no paid Apple Developer Program needed): signing, versions and identifiers
   in `App/Configuration/Lumen.xcconfig` with a git-ignored `Signing.local.xcconfig` for your team
   and bundle prefix; the App Group follows the prefix and can be switched off for teams that can't
