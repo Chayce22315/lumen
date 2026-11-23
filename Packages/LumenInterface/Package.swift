@@ -30,7 +30,7 @@ let package = Package(
             name: "LumenPlatform",
             dependencies: [
                 kit("LumenApplication"), kit("LumenOrganization"), kit("LumenKnowledge"), kit("LumenCore"),
-                kit("LumenNotifications"), kit("LumenSync"), kit("LumenFoundation"),
+                kit("LumenNotifications"), kit("LumenSync"), kit("LumenFoundation"), kit("LumenWidgetData"),
             ],
             swiftSettings: swiftSettings
         ),
