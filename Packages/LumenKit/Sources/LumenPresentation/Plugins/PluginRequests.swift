@@ -63,8 +63,17 @@ public final class PluginRequestInbox {
         return false
     }
 
-    /// Queues a package the user picked in Settings.
+    /// Queues a request made inside the app (a catalog entry).
     public func receive(_ request: PluginInstallRequest) {
         pending = request
+    }
+
+    /// Queues the package file the user picked in Files.
+    public func receiveFile(_ url: URL) {
+        do {
+            pending = .package(try readFile(url))
+        } catch {
+            pending = .unreadable(ErrorPresentation.from(error))
+        }
     }
 }

@@ -202,6 +202,18 @@ struct PluginPackageDecodingTests {
         #expect(!PluginPackageValidator.isValidHost("-bad.example.com"))
     }
 
+    @Test("package files are read up to the limit")
+    func files() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("lumen-plugin-files-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appendingPathComponent("weekly.lumenplugin")
+        try TestPackage.sample().data.write(to: file)
+        #expect(try PluginPackageFile.read(file) == TestPackage.sample().data)
+        #expect(throws: PluginPackageError.tooLarge(bytes: 11, limit: 10)) { try PluginPackageFile.read(file, limit: 10) }
+        #expect(throws: PluginPackageError.malformed(path: "", reason: "The file couldn't be opened.")) { try PluginPackageFile.read(directory.appendingPathComponent("missing.lumenplugin")) }
+    }
+
     @Test("validation messages never reach logs")
     func redaction() {
         let error = PluginPackageError.invalid([PluginPackageIssue(path: "manifest.name", message: "Secret plan for Q3")])
