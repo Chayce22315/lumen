@@ -123,8 +123,8 @@ struct PluginPackageManagerTests {
         #expect(installed.source == .file)
 
         let workflow = EntityReference(kind: "workflow", id: UUID())
-        try await harness.manager.recordOwnedEntity(PluginOwnedEntity(pluginID: id, contributionKey: "workflow:weekly", entity: workflow, createdAt: harness.environment.clock.now()))
-        #expect(try await harness.manager.ownedEntity(pluginID: id, contributionKey: "workflow:weekly")?.entity == workflow)
+        try await harness.manager.ownedEntities.record(PluginOwnedEntity(pluginID: id, contributionKey: "workflow:weekly", entity: workflow, createdAt: harness.environment.clock.now()))
+        #expect(try await harness.manager.ownedEntities.entity(pluginID: id, contributionKey: "workflow:weekly")?.entity == workflow)
 
         try await harness.manager.uninstall(id)
         #expect(harness.registry.contributions(to: commandPoint).isEmpty)
@@ -132,7 +132,7 @@ struct PluginPackageManagerTests {
         #expect(await harness.host.state(of: id) == nil)
         #expect(try await harness.manager.installed().isEmpty)
         #expect(harness.integration.removed.withLock { $0.map(\.entity) } == [workflow])
-        #expect(try await harness.manager.ownedEntities(of: id).isEmpty)
+        #expect(try await harness.manager.ownedEntities.entities(of: id).isEmpty)
         let grants = try await harness.environment.database.read { db in try db.queryFirst("SELECT * FROM plugins_registry WHERE plugin_id = ?", [id]) }
         #expect(grants == nil)
         await #expect(throws: PluginPackageError.notInstalled(id)) { try await harness.manager.uninstall(id) }

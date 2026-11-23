@@ -26,6 +26,8 @@ public actor PluginPackageManager {
     public nonisolated let reader: PluginPackageReader
     let integration: any PluginPackageIntegration
     let downloader: any PluginPackageDownloading
+    /// Entities plugins created on request; removed with their plugin.
+    public nonisolated let ownedEntities: PluginOwnedEntityStore
 
     public init(
         database: Database,
@@ -47,6 +49,7 @@ public actor PluginPackageManager {
         self.reader = PluginPackageReader(verifier: verifier, digest: digest, limits: limits)
         self.integration = integration
         self.downloader = downloader
+        self.ownedEntities = PluginOwnedEntityStore(database: database)
     }
 
     // MARK: - Launch
@@ -223,7 +226,7 @@ public actor PluginPackageManager {
         if registered {
             try await host.uninstall(id)
         }
-        let owned = try await database.read { db in try PluginOwnedEntityRepository.fetch(pluginID: id, in: db) }
+        let owned = try await ownedEntities.entities(of: id)
         try await integration.removeOwnedEntities(owned)
         try await database.write { db in
             try PluginOwnedEntityRepository.deleteAll(pluginID: id, in: db)
@@ -262,29 +265,6 @@ public actor PluginPackageManager {
             await host.activate(id)
         }
         logger.info("Plugin permissions changed", metadata: ["plugin": id])
-    }
-
-    // MARK: - Entities created by plugins
-
-    public func ownedEntity(pluginID: String, contributionKey: String) async throws -> PluginOwnedEntity? {
-        try await database.read { db in try PluginOwnedEntityRepository.fetch(pluginID: pluginID, contributionKey: contributionKey, in: db) }
-    }
-
-    public func ownedEntities(of pluginID: String) async throws -> [PluginOwnedEntity] {
-        try await database.read { db in try PluginOwnedEntityRepository.fetch(pluginID: pluginID, in: db) }
-    }
-
-    /// Records that a plugin created `entity` (removed with the plugin).
-    public func recordOwnedEntity(_ entity: PluginOwnedEntity) async throws {
-        guard try await database.read({ db in try PluginPackageRepository.fetch(entity.pluginID, in: db) }) != nil else {
-            throw PluginPackageError.notInstalled(entity.pluginID)
-        }
-        try await database.write { db in try PluginOwnedEntityRepository.save(entity, in: db) }
-    }
-
-    /// Forgets an entity the user deleted themselves.
-    public func forgetOwnedEntity(pluginID: String, contributionKey: String) async throws {
-        try await database.write { db in try PluginOwnedEntityRepository.delete(pluginID: pluginID, contributionKey: contributionKey, in: db) }
     }
 
     // MARK: - Queries
