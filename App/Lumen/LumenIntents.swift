@@ -63,6 +63,50 @@ struct AddNoteIntent: AppIntent {
     }
 }
 
+/// Starts a focus session from Siri, Shortcuts or the Action button. A `LiveActivityIntent`, so
+/// it runs in the app's process and may start the Live Activity while the app is in the
+/// background.
+struct StartFocusIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Start Focus"
+    static let description = IntentDescription("Starts a focus session in Lumen, with a countdown on the Lock Screen.")
+
+    @Parameter(title: "Minutes", default: 25)
+    var minutes: Int
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let services = try await SharedServices.shared.services()
+        let focus = services.focus
+        do {
+            let session = try await focus.service.start(FocusDraft(plannedMinutes: minutes))
+            await focus.coordinator.reconcile()
+            return .result(dialog: "Focusing for \(FocusIntegration.durationText(session.plannedDuration)).")
+        } catch OrganizationError.focusSessionAlreadyActive {
+            return .result(dialog: "A focus session is already running.")
+        } catch let error as ValidationError {
+            return .result(dialog: IntentDialog(stringLiteral: error.reason))
+        }
+    }
+}
+
+/// Finishes the running focus session, counting the time so far.
+struct StopFocusIntent: LiveActivityIntent {
+    static let title: LocalizedStringResource = "Stop Focus"
+    static let description = IntentDescription("Finishes the running focus session in Lumen and counts the time so far.")
+
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let services = try await SharedServices.shared.services()
+        let focus = services.focus
+        guard let active = try await focus.service.activeSession() else {
+            await focus.coordinator.reconcile()
+            return .result(dialog: "No focus session is running.")
+        }
+        let ended = try await focus.service.finish(active.id).session
+        await focus.coordinator.reconcile()
+        let focused = FocusIntegration.durationText(ended.focusedDuration(at: ended.endedAt ?? ended.startedAt))
+        return .result(dialog: "Done: \(focused) of focus.")
+    }
+}
+
 struct LumenShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
@@ -82,6 +126,18 @@ struct LumenShortcuts: AppShortcutsProvider {
             phrases: ["Add a note in \(.applicationName)"],
             shortTitle: "Add Note",
             systemImageName: "square.and.pencil"
+        )
+        AppShortcut(
+            intent: StartFocusIntent(),
+            phrases: ["Start focus in \(.applicationName)", "Start a focus session in \(.applicationName)"],
+            shortTitle: "Start Focus",
+            systemImageName: "timer"
+        )
+        AppShortcut(
+            intent: StopFocusIntent(),
+            phrases: ["Stop focus in \(.applicationName)", "End my focus session in \(.applicationName)"],
+            shortTitle: "Stop Focus",
+            systemImageName: "stop.circle"
         )
     }
 }

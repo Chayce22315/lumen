@@ -8,6 +8,7 @@ import LumenDesignSystem
 struct LumenWidgetsBundle: WidgetBundle {
     var body: some Widget {
         TodayWidget()
+        FocusLiveActivity()
     }
 }
 
