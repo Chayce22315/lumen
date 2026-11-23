@@ -13,6 +13,10 @@ public enum OrganizationError: PresentableError, Equatable {
     case systemCalendarNotFound
     case systemCalendarReadOnly
     case systemEventNotFound
+    case focusSessionNotFound(FocusSession.ID)
+    case focusSessionAlreadyActive
+    case focusSessionEnded
+    case focusTaskClosed
 
     public var presentation: ErrorPresentation {
         switch self {
@@ -41,6 +45,14 @@ public enum OrganizationError: PresentableError, Equatable {
             return ErrorPresentation(title: "Read-only calendar", message: "This calendar can't be changed, for example because it is a subscription.")
         case .systemEventNotFound:
             return ErrorPresentation(title: "Event not found", message: "This event is no longer in your calendar. It may have been deleted in another app.")
+        case .focusSessionNotFound:
+            return ErrorPresentation(title: "Session not found", message: "This focus session no longer exists.")
+        case .focusSessionAlreadyActive:
+            return ErrorPresentation(title: "Already focusing", message: "Finish or cancel the current focus session before starting another.")
+        case .focusSessionEnded:
+            return ErrorPresentation(title: "Session ended", message: "This focus session has already ended.")
+        case .focusTaskClosed:
+            return ErrorPresentation(title: "Task is closed", message: "This task is done or cancelled. Reopen it to focus on it.")
         }
     }
 }
