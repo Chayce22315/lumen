@@ -80,11 +80,7 @@ struct PluginCatalogsView: View {
         }
         .navigationTitle("Catalogs")
         .task { await catalogs.load() }
-        .refreshable {
-            for catalog in catalogs.catalogs {
-                await catalogs.refresh(catalog)
-            }
-        }
+        .refreshable { await catalogs.refreshAll() }
         .sheet(item: $reviewing, onDismiss: { Task { await catalogs.load() } }) { request in
             NavigationStack {
                 PluginReviewView(services: services, request: request)

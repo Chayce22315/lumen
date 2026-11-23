@@ -114,6 +114,13 @@ public final class PluginCatalogsViewModel {
         await load()
     }
 
+    /// Fetches every catalog again (pull to refresh).
+    public func refreshAll() async {
+        for catalog in catalogs {
+            await refresh(catalog)
+        }
+    }
+
     public func remove(_ catalog: PluginCatalog) async {
         do {
             try await services.plugins.packages.removeCatalog(catalog.id)
