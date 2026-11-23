@@ -10,11 +10,14 @@ import LumenOrganization
 struct TaskListView: View {
     let services: LumenServices
     let model: AppModel
+    /// The task shown beside the list on iPad; `nil` where rows push onto a stack.
+    let selection: Binding<AppDestination?>?
     @State private var list: TaskListViewModel
 
-    init(source: TaskListSource, services: LumenServices, model: AppModel) {
+    init(source: TaskListSource, services: LumenServices, model: AppModel, selection: Binding<AppDestination?>? = nil) {
         self.services = services
         self.model = model
+        self.selection = selection
         _list = State(initialValue: TaskListViewModel(source: source, services: services))
     }
 
@@ -47,14 +50,15 @@ struct TaskListView: View {
                 model.router.open(.capture(text: nil))
             }
         case .loaded(let rows):
-            List {
+            SelectableList(selection: selection) {
                 ForEach(rows) { row in
-                    NavigationLink(value: AppDestination.entity(row.task.reference)) {
+                    let destination = AppDestination.entity(row.task.reference)
+                    NavigationLink(value: destination) {
                         TaskRowView(row: row) {
                             Task { await list.toggleCompletion(row.id) }
                         }
                     }
-                    .listRowBackground(LumenColor.surface)
+                    .selectableRow(destination, selection: selection, background: LumenColor.surface)
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         Button {
                             Task { await list.toggleCompletion(row.id) }
@@ -65,6 +69,8 @@ struct TaskListView: View {
                     }
                     .swipeActions(edge: .trailing) {
                         Button(role: .destructive) {
+                            // The detail beside the list would show a deleted task.
+                            if selection?.wrappedValue == destination { selection?.wrappedValue = nil }
                             Task { await list.delete(row.id) }
                         } label: {
                             Label("Delete", systemImage: "trash")

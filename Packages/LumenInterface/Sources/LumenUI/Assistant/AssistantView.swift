@@ -11,13 +11,16 @@ import LumenSearch
 struct AssistantView: View {
     let services: LumenServices
     let model: AppModel
+    /// The conversation shown beside the list on iPad; `nil` where rows push onto a stack.
+    let selection: Binding<AppDestination?>?
     @State private var conversations: ConversationsViewModel
     @State private var isConfigured = true
     @FocusState private var searchFocused: Bool
 
-    init(services: LumenServices, model: AppModel) {
+    init(services: LumenServices, model: AppModel, selection: Binding<AppDestination?>? = nil) {
         self.services = services
         self.model = model
+        self.selection = selection
         _conversations = State(initialValue: ConversationsViewModel(services: services))
     }
 
@@ -69,20 +72,29 @@ struct AssistantView: View {
                     Task { await startConversation() }
                 }
             case .loaded(let list):
-                List(list) { conversation in
-                    NavigationLink(value: AppDestination.entity(conversation.reference)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: LumenSpace.xs) {
-                                if conversation.isPinned { Image(systemName: "pin.fill").font(.caption2).foregroundStyle(LumenColor.accent) }
-                                Text(conversation.title.isEmpty ? "New conversation" : conversation.title).lumenText(.body).lineLimit(1)
+                SelectableList(selection: selection) {
+                    ForEach(list) { conversation in
+                        let destination = AppDestination.entity(conversation.reference)
+                        NavigationLink(value: destination) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: LumenSpace.xs) {
+                                    if conversation.isPinned { Image(systemName: "pin.fill").font(.caption2).foregroundStyle(LumenColor.accent) }
+                                    Text(conversation.title.isEmpty ? "New conversation" : conversation.title).lumenText(.body).lineLimit(1)
+                                }
+                                Text(conversation.updatedAt, style: .relative).lumenText(.caption).foregroundStyle(LumenColor.textSecondary)
                             }
-                            Text(conversation.updatedAt, style: .relative).lumenText(.caption).foregroundStyle(LumenColor.textSecondary)
                         }
-                    }
-                    .listRowBackground(LumenColor.surface)
-                    .swipeActions {
-                        Button(role: .destructive) { Task { await conversations.delete(conversation.id) } } label: { Label("Delete", systemImage: "trash") }
-                        Button { Task { await conversations.setPinned(!conversation.isPinned, for: conversation.id) } } label: { Label("Pin", systemImage: "pin") }
+                        .selectableRow(destination, selection: selection, background: LumenColor.surface)
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                // The detail beside the list would show a deleted conversation.
+                                if selection?.wrappedValue == destination { selection?.wrappedValue = nil }
+                                Task { await conversations.delete(conversation.id) }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                            Button { Task { await conversations.setPinned(!conversation.isPinned, for: conversation.id) } } label: { Label("Pin", systemImage: "pin") }
+                        }
                     }
                 }
             }
@@ -94,28 +106,36 @@ struct AssistantView: View {
         if results.isEmpty {
             ContentUnavailableView.search(text: conversations.searchQuery)
         } else {
-            List(results) { row in
-                NavigationLink(value: AppDestination.entity(row.conversation.reference)) {
-                    VStack(alignment: .leading, spacing: LumenSpace.xxs) {
-                        HighlightedText(text: row.conversation.displayTitle, highlights: row.titleHighlights)
-                            .lineLimit(1)
-                        if let snippet = row.snippet {
-                            HighlightedText(text: snippet.text, highlights: snippet.highlights, role: .footnote, color: LumenColor.textSecondary)
-                                .lineLimit(2)
-                        }
-                        if row.conversation.isArchived {
-                            Text("Archived").lumenText(.caption).foregroundStyle(LumenColor.textTertiary)
+            SelectableList(selection: selection) {
+                ForEach(results) { row in
+                    let destination = AppDestination.entity(row.conversation.reference)
+                    NavigationLink(value: destination) {
+                        VStack(alignment: .leading, spacing: LumenSpace.xxs) {
+                            HighlightedText(text: row.conversation.displayTitle, highlights: row.titleHighlights)
+                                .lineLimit(1)
+                            if let snippet = row.snippet {
+                                HighlightedText(text: snippet.text, highlights: snippet.highlights, role: .footnote, color: LumenColor.textSecondary)
+                                    .lineLimit(2)
+                            }
+                            if row.conversation.isArchived {
+                                Text("Archived").lumenText(.caption).foregroundStyle(LumenColor.textTertiary)
+                            }
                         }
                     }
+                    .selectableRow(destination, selection: selection, background: LumenColor.surface)
                 }
-                .listRowBackground(LumenColor.surface)
             }
         }
     }
 
     private func startConversation() async {
         if let conversation = await conversations.create() {
-            model.router.push(.entity(conversation.reference))
+            // Beside the list the new conversation becomes the selection; on a stack it is pushed.
+            if let selection {
+                selection.wrappedValue = .entity(conversation.reference)
+            } else {
+                model.router.push(.entity(conversation.reference))
+            }
         }
     }
 }

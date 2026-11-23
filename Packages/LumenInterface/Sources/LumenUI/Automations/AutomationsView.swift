@@ -10,12 +10,15 @@ import LumenAutomation
 struct AutomationsView: View {
     let services: LumenServices
     let model: AppModel
+    /// The automation or run shown beside the list on iPad; `nil` where rows push onto a stack.
+    let selection: Binding<AppDestination?>?
     @State private var automations: AutomationsViewModel
     @State private var isCreating = false
 
-    init(services: LumenServices, model: AppModel) {
+    init(services: LumenServices, model: AppModel, selection: Binding<AppDestination?>? = nil) {
         self.services = services
         self.model = model
+        self.selection = selection
         _automations = State(initialValue: AutomationsViewModel(services: services))
     }
 
@@ -48,19 +51,26 @@ struct AutomationsView: View {
                 isCreating = true
             }
         case .loaded(let rows):
-            List {
+            SelectableList(selection: selection) {
                 Section {
                     ForEach(rows) { row in
-                        NavigationLink(value: AppDestination.entity(EntityReference(kind: .workflow, id: row.workflow.id))) {
+                        let destination = AppDestination.entity(EntityReference(kind: .workflow, id: row.workflow.id))
+                        NavigationLink(value: destination) {
                             WorkflowRow(row: row)
                         }
-                        .listRowBackground(LumenColor.surface)
+                        .selectableRow(destination, selection: selection, background: LumenColor.surface)
                         .swipeActions(edge: .leading) {
                             Button { Task { await automations.runNow(row.id) } } label: { Label("Run", systemImage: "play.fill") }
                                 .tint(LumenColor.accentFill)
                         }
                         .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) { Task { await automations.delete(row.id) } } label: { Label("Delete", systemImage: "trash") }
+                            Button(role: .destructive) {
+                                // The detail beside the list would show a deleted automation.
+                                if selection?.wrappedValue == destination { selection?.wrappedValue = nil }
+                                Task { await automations.delete(row.id) }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                             Button { Task { await automations.duplicate(row.id) } } label: { Label("Duplicate", systemImage: "plus.square.on.square") }
                         }
                     }
@@ -68,10 +78,11 @@ struct AutomationsView: View {
                 if !automations.recentRuns.isEmpty {
                     Section("Recent runs") {
                         ForEach(automations.recentRuns) { run in
-                            NavigationLink(value: AppDestination.entity(run.reference)) {
+                            let destination = AppDestination.entity(run.reference)
+                            NavigationLink(value: destination) {
                                 RunSummaryRow(run: run, workflowName: rows.first { $0.workflow.id == run.workflowID }?.workflow.name)
                             }
-                            .listRowBackground(LumenColor.surface)
+                            .selectableRow(destination, selection: selection, background: LumenColor.surface)
                         }
                     }
                 }
