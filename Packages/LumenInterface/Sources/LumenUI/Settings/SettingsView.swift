@@ -54,7 +54,7 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: AppDestination.SettingsSection.self) { section in
-            SettingsSectionView(section: section, services: services, settings: settings)
+            SettingsSectionView(section: section, services: services, settings: settings, model: model)
         }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -108,13 +108,14 @@ private struct SettingsSectionView: View {
     let section: AppDestination.SettingsSection
     let services: LumenServices
     let settings: SettingsViewModel
+    let model: AppModel
 
     var body: some View {
         switch section {
         case .general, .assistant: AssistantSetupView(services: services)
         case .notifications: NotificationSettingsView(services: services)
         case .sync: SyncSettingsView(settings: settings)
-        case .plugins: PluginsSettingsView(settings: settings)
+        case .plugins: PluginsSettingsView(services: services, inbox: model.pluginRequests)
         case .privacy: PrivacySettingsView(services: services)
         case .diagnostics: DiagnosticsView(settings: settings)
         }

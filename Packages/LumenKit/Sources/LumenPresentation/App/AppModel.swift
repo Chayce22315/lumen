@@ -20,6 +20,9 @@ public final class AppModel {
     public private(set) var banners: [ReportedIssue] = []
     /// A short confirmation ("Moved 2 tasks to today.").
     public var toast: String?
+    /// A plugin package or install link opened from outside, waiting for its review in
+    /// Settings › Plugins.
+    public let pluginRequests = PluginRequestInbox()
 
     private let makeServices: @Sendable () async throws -> LumenServices
     private let makeRuntime: @Sendable (LumenServices) async throws -> LumenRuntime
@@ -74,6 +77,10 @@ public final class AppModel {
     public func handle(url: URL) {
         guard services != nil else {
             pendingURL = url
+            return
+        }
+        if pluginRequests.accept(url) {
+            router.open(.settings(.plugins))
             return
         }
         if let destination = DeepLink.destination(from: url) {

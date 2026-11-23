@@ -60,6 +60,10 @@ public struct AnalyticsServices: Sendable {
 public struct PluginServices: Sendable {
     public let host: PluginHost
     public let extensions: ExtensionRegistry
+    /// Third-party packages: review, install, update, permissions, uninstall and catalogs.
+    public let packages: PluginPackageManager
+    /// Workflows added from plugin templates.
+    public let templates: PluginTemplateService
 }
 
 /// The fully wired object graph. Created once by `LumenBootstrap` and shared by the interface,

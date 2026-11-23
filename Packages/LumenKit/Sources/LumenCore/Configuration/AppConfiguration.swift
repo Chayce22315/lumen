@@ -8,10 +8,18 @@ public struct FeatureFlag: RawRepresentable, Hashable, Sendable, Codable {
         self.rawValue = rawValue
     }
 
-    /// Allows activating third-party plugins (built-in features are always active).
+    /// Allows installing and activating third-party plugins (built-in features are always active).
     public static let thirdPartyPlugins = FeatureFlag(rawValue: "plugins.thirdParty")
     /// Verbose logging of engine internals.
     public static let verboseLogging = FeatureFlag(rawValue: "diagnostics.verbose")
+
+    /// Flags a configuration has unless it says otherwise.
+    ///
+    /// Third-party plugins are on: a plugin is a declarative package executed by Lumen's own
+    /// engines (no code is loaded), it is installed only after the user reviewed it, and each
+    /// capability and network host is granted individually. The flag remains a kill switch: a
+    /// build without it refuses installs and shows installed plugins as not allowed.
+    public static let defaults: Set<FeatureFlag> = [.thirdPartyPlugins]
 }
 
 /// Static description of the running build, resolved once at launch by the composition root.
@@ -42,7 +50,7 @@ public struct AppConfiguration: Sendable {
         appGroupIdentifier: String? = nil,
         keychainService: String = "app.lumen.secrets",
         logSubsystem: String = "app.lumen",
-        featureFlags: Set<FeatureFlag> = [],
+        featureFlags: Set<FeatureFlag> = FeatureFlag.defaults,
         appVersion: String = "0.0.0",
         buildNumber: String = "0"
     ) {

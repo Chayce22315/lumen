@@ -30,11 +30,14 @@ public final class ConversationsViewModel {
     }
     /// Search results; `nil` while the search field is empty.
     public private(set) var searchResults: [ConversationSearchRow]?
+    /// Saved prompts offered by plugins; each starts a conversation with the prompt to send.
+    public private(set) var shortcuts: [PromptShortcut] = []
 
     private let services: LumenServices
     private let debounce: TimeInterval
     private let observation = ObservationHandle()
     private let pendingSearch = ObservationHandle()
+    private let pluginObservation = ObservationHandle()
 
     public init(services: LumenServices, debounce: TimeInterval = 0.2) {
         self.services = services
@@ -49,6 +52,10 @@ public final class ConversationsViewModel {
             guard let self else { return }
             await self.load()
             if self.isSearching { await self.search() }
+        }
+        services.events.observe(EventFilter(modules: ["plugins"]), into: pluginObservation) { [weak self] in
+            guard let self else { return }
+            self.shortcuts = self.services.plugins.promptShortcuts()
         }
     }
 
@@ -90,6 +97,7 @@ public final class ConversationsViewModel {
     }
 
     public func load() async {
+        shortcuts = services.plugins.promptShortcuts()
         do {
             state = .loaded(try await services.intelligence.conversations.list(includeArchived: showsArchived))
         } catch {
@@ -163,9 +171,12 @@ public final class ChatViewModel {
     private let reply = ObservationHandle()
     private let approvals = ObservationHandle()
 
-    public init(conversationID: Conversation.ID, services: LumenServices) {
+    /// - Parameter initialDraft: text placed in the composer (a plugin's prompt shortcut); the
+    ///   user reads and sends it.
+    public init(conversationID: Conversation.ID, services: LumenServices, initialDraft: String = "") {
         self.conversationID = conversationID
         self.services = services
+        self.draft = initialDraft
     }
 
     public var isResponding: Bool { streamingText != nil }

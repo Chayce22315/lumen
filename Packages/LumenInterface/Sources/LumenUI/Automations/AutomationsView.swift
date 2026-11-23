@@ -46,7 +46,7 @@ struct AutomationsView: View {
             SkeletonRows().padding(LumenSpace.screen).frame(maxHeight: .infinity, alignment: .top)
         case .failed(let error):
             StateMessage(error.title, message: error.message, symbolName: "exclamationmark.triangle")
-        case .loaded(let rows) where rows.isEmpty:
+        case .loaded(let rows) where rows.isEmpty && automations.templates.isEmpty:
             StateMessage("No automations", message: "Automations run steps for you when something happens or on a schedule — like logging every finished task to a journal.", symbolName: "point.3.connected.trianglepath.dotted", actionTitle: "Create one") {
                 isCreating = true
             }
@@ -75,6 +75,24 @@ struct AutomationsView: View {
                         }
                     }
                 }
+                if !automations.templates.isEmpty {
+                    Section {
+                        ForEach(automations.templates) { row in
+                            TemplateRow(row: row) {
+                                Task {
+                                    if let workflow = await automations.addTemplate(row.template) {
+                                        model.router.push(.entity(workflow.reference))
+                                    }
+                                }
+                            }
+                            .listRowBackground(LumenColor.surface)
+                        }
+                    } header: {
+                        Text("Templates from plugins")
+                    } footer: {
+                        Text("Adding a template creates an automation that starts off, so you can check it before turning it on.")
+                    }
+                }
                 if !automations.recentRuns.isEmpty {
                     Section("Recent runs") {
                         ForEach(automations.recentRuns) { run in
@@ -87,6 +105,30 @@ struct AutomationsView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+/// A plugin's automation template, with Add (or Open once added).
+private struct TemplateRow: View {
+    let row: AutomationsViewModel.TemplateRow
+    let open: () -> Void
+
+    var body: some View {
+        HStack(spacing: LumenSpace.m) {
+            IconBadge("puzzlepiece.extension")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.template.name).lumenText(.body)
+                Text(row.template.summary.isEmpty ? row.template.pluginName : "\(row.template.pluginName) · \(row.template.summary)")
+                    .lumenText(.caption)
+                    .foregroundStyle(LumenColor.textSecondary)
+                    .lineLimit(2)
+            }
+            .accessibilityElement(children: .combine)
+            Spacer()
+            Button(row.addedWorkflowID == nil ? "Add" : "Open", action: open)
+                .buttonStyle(.lumenQuiet)
+                .accessibilityLabel(row.addedWorkflowID == nil ? "Add \(row.template.name)" : "Open \(row.template.name)")
         }
     }
 }

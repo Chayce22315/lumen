@@ -16,8 +16,17 @@ public final class AutomationsViewModel {
         public var id: Workflow.ID { workflow.id }
     }
 
+    /// A plugin's ready-made automation, and the workflow added from it if there is one.
+    public struct TemplateRow: Sendable, Hashable, Identifiable {
+        public let template: WorkflowTemplate
+        public let addedWorkflowID: Workflow.ID?
+        public var id: String { template.id }
+    }
+
     public private(set) var state: LoadState<[Row]> = .idle
     public private(set) var recentRuns: [WorkflowRun] = []
+    /// Templates offered by installed plugins.
+    public private(set) var templates: [TemplateRow] = []
 
     private let services: LumenServices
     private let observation = ObservationHandle()
@@ -28,7 +37,7 @@ public final class AutomationsViewModel {
 
     public func start() async {
         await load()
-        services.events.observe(EventFilter(modules: ["automation", "sync"]), into: observation) { [weak self] in
+        services.events.observe(EventFilter(modules: ["automation", "sync", "plugins"]), into: observation) { [weak self] in
             await self?.load()
         }
     }
@@ -43,6 +52,11 @@ public final class AutomationsViewModel {
             }
             state = .loaded(rows)
             recentRuns = try await engine.recentRuns(limit: 20)
+            var templateRows: [TemplateRow] = []
+            for template in services.plugins.templates.templates() {
+                templateRows.append(TemplateRow(template: template, addedWorkflowID: try await services.plugins.templates.addedWorkflow(for: template)?.id))
+            }
+            templates = templateRows
         } catch {
             state = .failed(ErrorPresentation.from(error))
         }
@@ -66,6 +80,19 @@ public final class AutomationsViewModel {
             return run
         } catch {
             services.errors.report(error, context: "Running an automation")
+            return nil
+        }
+    }
+
+    /// Adds a plugin template as a workflow (switched off) and returns it, or the workflow added
+    /// from it before.
+    public func addTemplate(_ template: WorkflowTemplate) async -> Workflow? {
+        do {
+            let workflow = try await services.plugins.templates.add(template)
+            await load()
+            return workflow
+        } catch {
+            services.errors.report(error, context: "Adding an automation template")
             return nil
         }
     }

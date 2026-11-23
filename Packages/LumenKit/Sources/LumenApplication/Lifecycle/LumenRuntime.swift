@@ -193,7 +193,14 @@ public actor LumenRuntime {
         for id in contributedActions.subtracting(actionIDs) {
             _ = services.automation.catalog.unregister(id)
         }
-        for action in actions where !contributedActions.contains(action.descriptor.id) {
+        var replaced = Set<AutomationActionID>()
+        for action in actions {
+            // Re-register actions that were already contributed too: a plugin restarted with
+            // new grants (a network host allowed or revoked) contributes a new instance under
+            // the same identifier, and the old one must not keep running.
+            if contributedActions.contains(action.descriptor.id), replaced.insert(action.descriptor.id).inserted {
+                services.automation.catalog.unregister(action.descriptor.id)
+            }
             do {
                 try services.automation.catalog.register(action)
             } catch {
