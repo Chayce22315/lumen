@@ -25,10 +25,8 @@ struct SheetView: View {
             SettingsView(services: services, model: model, initialSection: section)
                 .presentationCornerRadius(LumenRadius.sheet)
         case .commandPalette:
-            NavigationStack {
-                SearchView(services: services, model: model)
-            }
-            .presentationDetents([.large])
+            CommandPaletteView(services: services, model: model)
+                .presentationDetents([.large])
         }
     }
 }
@@ -71,8 +69,7 @@ struct NoteCreationLauncher: View {
                 let note = await library.createNote()
                 model.router.dismissSheet()
                 if let note {
-                    model.router.selectedTab = .library
-                    model.router.libraryPath = [.entity(note.reference)]
+                    model.router.show(.entity(note.reference), in: .library)
                 }
             }
     }
@@ -90,8 +87,7 @@ struct ConversationLauncher: View {
                 let conversation = await conversations.create()
                 model.router.dismissSheet()
                 if let conversation {
-                    model.router.selectedTab = .assistant
-                    model.router.assistantPath = [.entity(EntityReference(kind: .conversation, id: conversation.id))]
+                    model.router.show(.entity(EntityReference(kind: .conversation, id: conversation.id)), in: .assistant)
                 }
             }
     }

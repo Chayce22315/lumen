@@ -41,13 +41,13 @@ struct PlanView: View {
             }
             Section {
                 NavigationLink(value: AppDestination.tasks(.projects)) {
-                    Label { Text("Projects").lumenText(.body) } icon: { IconBadge("square.stack.3d.up") }
+                    Label { Text("Projects").lumenText(.body) } icon: { IconBadge(NavigationSection.tasks(.projects).symbolName) }
                 }
                 NavigationLink(value: AppDestination.calendar) {
-                    Label { Text("Calendar").lumenText(.body) } icon: { IconBadge("calendar") }
+                    Label { Text("Calendar").lumenText(.body) } icon: { IconBadge(NavigationSection.calendar.symbolName) }
                 }
                 NavigationLink(value: AppDestination.automations) {
-                    Label { Text("Automations").lumenText(.body) } icon: { IconBadge("point.3.connected.trianglepath.dotted") }
+                    Label { Text("Automations").lumenText(.body) } icon: { IconBadge(NavigationSection.automations.symbolName) }
                 }
             }
         }
@@ -75,14 +75,8 @@ struct PlanView: View {
         }
     }
 
+    /// The same symbols as the iPad sidebar.
     private static func symbol(for list: SmartList) -> String {
-        switch list {
-        case .today: return "sun.max"
-        case .upcoming: return "calendar.day.timeline.left"
-        case .overdue: return "clock.badge.exclamationmark"
-        case .inbox: return "tray"
-        case .anytime: return "square.grid.2x2"
-        case .completed: return "checkmark.circle"
-        }
+        NavigationSection.tasks(destination(for: list)).symbolName
     }
 }

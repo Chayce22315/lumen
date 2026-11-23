@@ -65,6 +65,11 @@ public final class LibraryViewModel {
         }
     }
 
+    /// The documents filed in one collection (the Library lists all documents under any filter).
+    public func documents(in collection: NoteCollection.ID) -> [DocumentItem] {
+        documents.filter { $0.collectionID == collection }
+    }
+
     /// Creates an empty note and returns it for the editor.
     public func createNote() async -> Note? {
         var collectionID: NoteCollection.ID?

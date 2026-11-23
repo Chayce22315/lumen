@@ -11,6 +11,7 @@ struct SearchView: View {
     let services: LumenServices
     let model: AppModel
     @State private var palette: CommandPaletteViewModel
+    @FocusState private var searchFocused: Bool
 
     init(services: LumenServices, model: AppModel) {
         self.services = services
@@ -69,6 +70,11 @@ struct SearchView: View {
         .lumenScreenBackground()
         .navigationTitle("Search")
         .searchable(text: $palette.query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Tasks, notes, commands…")
+        .searchFocused($searchFocused)
+        .onChange(of: model.router.searchFocusRequest, initial: true) {
+            // ⌘F
+            if model.router.claimSearchFocus(in: .search) { searchFocused = true }
+        }
         .onSubmit(of: .search) { Task { await palette.remember() } }
         .task {
             if let pending = model.router.pendingSearchQuery {
@@ -80,7 +86,8 @@ struct SearchView: View {
     }
 }
 
-private struct ResultRow: View {
+/// A content result: title, kind and snippet with the matches emphasised.
+struct ResultRow: View {
     let result: SearchResult
 
     var body: some View {

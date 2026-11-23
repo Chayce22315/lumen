@@ -10,12 +10,15 @@ import LumenOrganization
 struct ProjectsView: View {
     let services: LumenServices
     let model: AppModel
+    /// The project shown beside the list on iPad; `nil` where rows push onto a stack.
+    let selection: Binding<AppDestination?>?
     @State private var projects: ProjectsViewModel
     @State private var isCreating = false
 
-    init(services: LumenServices, model: AppModel) {
+    init(services: LumenServices, model: AppModel, selection: Binding<AppDestination?>? = nil) {
         self.services = services
         self.model = model
+        self.selection = selection
         _projects = State(initialValue: ProjectsViewModel(services: services))
     }
 
@@ -57,26 +60,33 @@ struct ProjectsView: View {
                 isCreating = true
             }
         case .loaded(let rows):
-            List(rows) { row in
-                NavigationLink(value: AppDestination.entity(row.project.reference)) {
-                    HStack(spacing: LumenSpace.m) {
-                        ProgressRing(fraction: row.progress.fractionComplete, tint: LumenColor.identity(row.project.color.rawValue))
-                            .frame(width: 30, height: 30)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(row.project.name).lumenText(.body).foregroundStyle(LumenColor.textPrimary)
-                            Text(row.progressLabel).lumenText(.caption).foregroundStyle(LumenColor.textSecondary)
+            SelectableList(selection: selection) {
+                ForEach(rows) { row in
+                    let destination = AppDestination.entity(row.project.reference)
+                    NavigationLink(value: destination) {
+                        HStack(spacing: LumenSpace.m) {
+                            ProgressRing(fraction: row.progress.fractionComplete, tint: LumenColor.identity(row.project.color.rawValue))
+                                .frame(width: 30, height: 30)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(row.project.name).lumenText(.body).foregroundStyle(LumenColor.textPrimary)
+                                Text(row.progressLabel).lumenText(.caption).foregroundStyle(LumenColor.textSecondary)
+                            }
+                            Spacer()
+                            HealthBadge(health: row.progress.health)
                         }
-                        Spacer()
-                        HealthBadge(health: row.progress.health)
+                        .padding(.vertical, LumenSpace.xs)
                     }
-                    .padding(.vertical, LumenSpace.xs)
-                }
-                .listRowBackground(LumenColor.surface)
-                .contextMenu {
-                    Button("Mark completed") { Task { await projects.setStatus(.completed, for: row.id) } }
-                    Button("Put on hold") { Task { await projects.setStatus(.onHold, for: row.id) } }
-                    Button("Archive") { Task { await projects.setStatus(.archived, for: row.id) } }
-                    Button("Delete, keep tasks", role: .destructive) { Task { await projects.delete(row.id, deletingTasks: false) } }
+                    .selectableRow(destination, selection: selection, background: LumenColor.surface)
+                    .contextMenu {
+                        Button("Mark completed") { Task { await projects.setStatus(.completed, for: row.id) } }
+                        Button("Put on hold") { Task { await projects.setStatus(.onHold, for: row.id) } }
+                        Button("Archive") { Task { await projects.setStatus(.archived, for: row.id) } }
+                        Button("Delete, keep tasks", role: .destructive) {
+                            // The detail beside the list would show a deleted project.
+                            if selection?.wrappedValue == destination { selection?.wrappedValue = nil }
+                            Task { await projects.delete(row.id, deletingTasks: false) }
+                        }
+                    }
                 }
             }
         }

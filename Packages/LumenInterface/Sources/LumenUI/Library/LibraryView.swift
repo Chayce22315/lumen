@@ -9,31 +9,49 @@ import LumenKnowledge
 
 /// Notes, collections, tags and documents.
 struct LibraryView: View {
+    /// Everything in the Library, or one collection's notes (a collection's own item in the iPad
+    /// sidebar, where the other collections and the filters are already one click away).
+    enum Scope: Hashable {
+        case library
+        case collection(NoteCollection.ID, name: String)
+    }
+
     let services: LumenServices
     let model: AppModel
+    let scope: Scope
+    /// The note or document shown beside the list on iPad; `nil` where rows push onto a stack.
+    let selection: Binding<AppDestination?>?
     @State private var library: LibraryViewModel
     @State private var isImporting = false
     @State private var newCollectionName = ""
     @State private var isNamingCollection = false
 
-    init(services: LumenServices, model: AppModel, initialFilter: LibraryViewModel.Filter = .all) {
+    init(
+        services: LumenServices,
+        model: AppModel,
+        initialFilter: LibraryViewModel.Filter = .all,
+        scope: Scope = .library,
+        selection: Binding<AppDestination?>? = nil
+    ) {
         self.services = services
         self.model = model
+        self.scope = scope
+        self.selection = selection
         let library = LibraryViewModel(services: services)
         library.filter = initialFilter
         _library = State(initialValue: library)
     }
 
     var body: some View {
-        List {
-            filters
+        SelectableList(selection: selection) {
+            if scope == .library { filters }
             notesSection
-            if !library.collections.isEmpty { collectionsSection }
-            if !library.documents.isEmpty { documentsSection }
+            if scope == .library && !library.collections.isEmpty { collectionsSection }
+            if !documents.isEmpty { documentsSection }
         }
         .scrollContentBackground(.hidden)
         .lumenScreenBackground()
-        .navigationTitle("Library")
+        .navigationTitle(title)
         .toolbar { toolbar }
         .fileImporter(isPresented: $isImporting, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
             Task { await importFiles(result) }
@@ -69,9 +87,25 @@ struct LibraryView: View {
         }
     }
 
+    private var title: String {
+        switch scope {
+        case .library: return "Library"
+        case .collection(_, let name): return name
+        }
+    }
+
+    private var documents: [DocumentItem] {
+        switch scope {
+        case .library: return library.documents
+        case .collection(let id, _): return library.documents(in: id)
+        }
+    }
+
     private func filterChip(_ title: String, _ filter: LibraryViewModel.Filter) -> some View {
         Button { library.filter = filter } label: {
             Chip(title, isProminent: library.filter == filter)
+                .contentShape(.hoverEffect, Capsule())
+                .hoverEffect(.highlight)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(library.filter == filter ? .isSelected : [])
@@ -91,9 +125,11 @@ struct LibraryView: View {
                     .foregroundStyle(LumenColor.textSecondary)
             case .loaded(let notes):
                 ForEach(notes) { note in
-                    NavigationLink(value: AppDestination.entity(note.reference)) {
+                    let destination = AppDestination.entity(note.reference)
+                    NavigationLink(value: destination) {
                         NoteRow(note: note)
                     }
+                    .selectableRow(destination, selection: selection)
                     .swipeActions(edge: .leading) {
                         Button { Task { await library.togglePin(note) } } label: {
                             Label(note.isPinned ? "Unpin" : "Pin", systemImage: note.isPinned ? "pin.slash" : "pin")
@@ -101,7 +137,13 @@ struct LibraryView: View {
                         .tint(LumenColor.accentFill)
                     }
                     .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) { Task { await library.delete(note) } } label: { Label("Delete", systemImage: "trash") }
+                        Button(role: .destructive) {
+                            // The detail beside the list would show a deleted note.
+                            if selection?.wrappedValue == destination { selection?.wrappedValue = nil }
+                            Task { await library.delete(note) }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                         Button { Task { await library.setArchived(!note.isArchived, note) } } label: {
                             Label(note.isArchived ? "Unarchive" : "Archive", systemImage: "archivebox")
                         }
@@ -121,14 +163,16 @@ struct LibraryView: View {
                         .padding(.leading, CGFloat(node.depth) * LumenSpace.l)
                         .foregroundStyle(library.filter == .collection(node.collection.id) ? LumenColor.accentText : LumenColor.textPrimary)
                 }
+                .accessibilityAddTraits(library.filter == .collection(node.collection.id) ? .isSelected : [])
             }
         }
     }
 
     private var documentsSection: some View {
         Section("Documents") {
-            ForEach(library.documents) { document in
-                NavigationLink(value: AppDestination.entity(document.reference)) {
+            ForEach(documents) { document in
+                let destination = AppDestination.entity(document.reference)
+                NavigationLink(value: destination) {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(document.title).lumenText(.body)
@@ -140,6 +184,7 @@ struct LibraryView: View {
                         IconBadge("doc")
                     }
                 }
+                .selectableRow(destination, selection: selection)
             }
         }
     }
@@ -159,7 +204,12 @@ struct LibraryView: View {
             Button {
                 Task {
                     if let note = await library.createNote() {
-                        model.router.push(.entity(note.reference))
+                        // Beside the list the new note becomes the selection; on a stack it is pushed.
+                        if let selection {
+                            selection.wrappedValue = .entity(note.reference)
+                        } else {
+                            model.router.push(.entity(note.reference))
+                        }
                     }
                 }
             } label: {
