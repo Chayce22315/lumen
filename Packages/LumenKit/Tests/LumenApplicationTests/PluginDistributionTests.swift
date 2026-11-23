@@ -237,6 +237,23 @@ struct PluginDistributionTests {
         await app.stop()
     }
 
+    @Test("a template whose step isn't allowed can't be added, and says why without logging the package's text")
+    func templateNeedsItsSteps() async throws {
+        let app = try await PluginApp.start()
+        try await app.install(SamplePackage(), hosts: [])
+        #expect(await eventually { !app.services.plugins.templates.templates().isEmpty })
+        let template = try #require(app.services.plugins.templates.templates().first)
+        do {
+            try await app.services.plugins.templates.add(template)
+            Issue.record("a template with a missing step was added")
+        } catch let error as PluginTemplateError {
+            #expect(error.presentation.title == "Template can't be added")
+            #expect(error.description == "notRunnable(\(SamplePackage.id), issues: 1)")
+        }
+        #expect(try await app.services.automation.engine.workflows().isEmpty)
+        await app.stop()
+    }
+
     @Test("webhook steps refuse hosts that weren't allowed and classify failures")
     func webhookResponses() async throws {
         let app = try await PluginApp.start()

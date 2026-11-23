@@ -42,10 +42,16 @@ public final class PluginTemplateService: Sendable {
     @discardableResult
     public func add(_ template: WorkflowTemplate, context: ActionContext = .user) async throws -> Workflow {
         if let existing = try await addedWorkflow(for: template) { return existing }
-        let workflow = try await engine.create(
-            WorkflowDraft(name: template.name, summary: template.summary, isEnabled: false, trigger: template.trigger, graph: template.graph),
-            context: context
-        )
+        let workflow: Workflow
+        do {
+            workflow = try await engine.create(
+                WorkflowDraft(name: template.name, summary: template.summary, isEnabled: false, trigger: template.trigger, graph: template.graph),
+                context: context
+            )
+        } catch AutomationError.invalidWorkflow(let issues) {
+            // The engine's description quotes step titles, which come from the package.
+            throw PluginTemplateError.notRunnable(pluginID: template.pluginID, issues: issues.errors.map(\.message))
+        }
         do {
             try await owned.record(PluginOwnedEntity(pluginID: template.pluginID, contributionKey: template.contributionKey, entity: workflow.reference, createdAt: timeSource.now()))
         } catch {
@@ -88,5 +94,29 @@ extension PluginServices {
     /// The automation step a package's webhook becomes, as automations reference it.
     public static func webhookActionID(pluginID: String, webhookID: String) -> AutomationActionID {
         PluginWebhookAction.actionID(pluginID: pluginID, webhookID: webhookID)
+    }
+}
+
+/// Why a plugin's template can't become a workflow right now, typically because one of its
+/// steps belongs to a permission or address the user hasn't allowed. `description` (logs)
+/// carries the plugin identifier and a count only.
+public enum PluginTemplateError: PresentableError, Equatable, CustomStringConvertible {
+    case notRunnable(pluginID: String, issues: [String])
+
+    public var presentation: ErrorPresentation {
+        switch self {
+        case .notRunnable(_, let issues):
+            return ErrorPresentation(
+                title: "Template can't be added",
+                message: issues.prefix(2).joined(separator: " "),
+                recoverySuggestion: "If a step is missing, allow the plugin's permissions and internet addresses in Settings › Plugins."
+            )
+        }
+    }
+
+    public var description: String {
+        switch self {
+        case .notRunnable(let pluginID, let issues): return "notRunnable(\(pluginID), issues: \(issues.count))"
+        }
     }
 }

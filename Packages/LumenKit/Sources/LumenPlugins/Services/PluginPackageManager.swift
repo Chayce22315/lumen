@@ -303,7 +303,7 @@ public actor PluginPackageManager {
 
     func download(_ url: URL, limit: Int) async throws -> Data {
         guard PluginInstallLink.isAllowedDownload(url) else { throw PluginPackageError.insecureURL }
-        logger.info("Downloading plugin file", metadata: ["host": url.host ?? ""])
+        logger.info("Downloading plugin file")
         return try await downloader.download(url, limit: limit, timeout: Self.downloadTimeout)
     }
 
