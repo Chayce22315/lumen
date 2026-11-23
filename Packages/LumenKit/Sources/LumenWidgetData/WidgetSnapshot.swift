@@ -176,8 +176,25 @@ public struct WidgetSnapshotStore: Sendable {
 
 /// Where the app and its widget extension share data.
 public enum SharedContainer {
+    /// Info.plist key carrying the App Group identifier. Both targets set it from the
+    /// `LUMEN_APP_GROUP` build setting (`App/Configuration/Lumen.xcconfig`), which also feeds
+    /// their entitlements, so a personal bundle prefix changes all three together.
+    public static let appGroupInfoKey = "LumenAppGroupIdentifier"
+    /// Used when the running bundle doesn't name one (tests, tools).
+    public static let defaultAppGroupIdentifier = "group.app.lumen"
+
     /// The App Group both targets declare in their entitlements.
-    public static let appGroupIdentifier = "group.app.lumen"
+    public static var appGroupIdentifier: String {
+        appGroupIdentifier(in: Bundle.main.infoDictionary ?? [:])
+    }
+
+    /// The identifier named by an Info.plist dictionary, or the default when it names none.
+    public static func appGroupIdentifier(in infoDictionary: [String: Any]) -> String {
+        guard let value = infoDictionary[appGroupInfoKey] as? String else { return defaultAppGroupIdentifier }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        // An unexpanded "$(…)" means the build setting was missing; treat it as unset.
+        return trimmed.isEmpty || trimmed.hasPrefix("$(") ? defaultAppGroupIdentifier : trimmed
+    }
 
     /// The shared data directory, or `nil` when the App Group is not provisioned (for example an
     /// unsigned simulator build); callers then fall back to the app's own container.

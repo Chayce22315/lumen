@@ -55,6 +55,7 @@
 		4C0000000000000000000010 /* Lumen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lumen.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C0000000000000000000011 /* LumenWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LumenWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C0000000000000000000012 /* LumenUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LumenUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C0000000000000000000014 /* Lumen.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Lumen.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -119,6 +120,7 @@
 				4C0000000000000000000004 /* Lumen */,
 				4C0000000000000000000005 /* LumenWidgets */,
 				4C0000000000000000000006 /* LumenUITests */,
+				4C0000000000000000000007 /* Configuration */,
 				4C0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -131,6 +133,15 @@
 				4C0000000000000000000012 /* LumenUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4C0000000000000000000007 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				4C0000000000000000000014 /* Lumen.xcconfig */,
+			);
+			name = Configuration;
+			path = App/Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -326,6 +337,7 @@
 /* Begin XCBuildConfiguration section */
 		4C00000000000000000000B0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4C0000000000000000000014 /* Lumen.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -357,6 +369,7 @@
 		};
 		4C00000000000000000000B1 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4C0000000000000000000014 /* Lumen.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -385,10 +398,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = App/Configuration/Lumen.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/Lumen$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Configuration/Lumen-Info.plist;
@@ -402,8 +412,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.lumen.Lumen;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -418,10 +427,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = App/Configuration/Lumen.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/Lumen$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Configuration/Lumen-Info.plist;
@@ -435,8 +441,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.lumen.Lumen;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -449,10 +454,7 @@
 		4C00000000000000000000B4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = App/Configuration/LumenWidgets.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/LumenWidgets$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "App/Configuration/LumenWidgets-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Lumen;
@@ -461,8 +463,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.lumen.Lumen.Widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen.Widgets";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -474,10 +475,7 @@
 		4C00000000000000000000B5 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = App/Configuration/LumenWidgets.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/LumenWidgets$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "App/Configuration/LumenWidgets-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Lumen;
@@ -486,8 +484,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.lumen.Lumen.Widgets;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen.Widgets";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -499,17 +496,13 @@
 		4C00000000000000000000B6 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.lumen.LumenUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).LumenUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -521,17 +514,13 @@
 		4C00000000000000000000B7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.lumen.LumenUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).LumenUITests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_EMIT_LOC_STRINGS = NO;
