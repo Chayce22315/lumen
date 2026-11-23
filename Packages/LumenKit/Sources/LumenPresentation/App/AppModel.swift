@@ -98,6 +98,13 @@ public final class AppModel {
         }
     }
 
+    /// Performs a menu command or keyboard shortcut. Before launch has finished there is nothing to
+    /// navigate, so commands are ignored rather than queued behind the launch screen.
+    public func perform(_ command: AppCommand) {
+        guard services != nil else { return }
+        router.perform(command)
+    }
+
     public func dismissBanner(_ id: ReportedIssue.ID) {
         banners.removeAll { $0.id == id }
     }
