@@ -8,6 +8,7 @@ public actor PluginHost {
     public static let schema = PluginSchema.schema
     public static let hostVersion = PluginVersion(major: 1, minor: 0, patch: 0)
     public static let stateChangedEvent: EventName = "plugins.plugin.stateChanged"
+    public static let permissionsChangedEvent: EventName = "plugins.plugin.permissionsChanged"
 
     private struct Registration {
         let plugin: any LumenPlugin
@@ -22,7 +23,8 @@ public actor PluginHost {
     private let timeSource: any TimeSource
     private let logging: LoggingSystem
     private let logger: Logger
-    private let allowsThirdParty: Bool
+    /// Whether third-party plugins may be activated in this build (`FeatureFlag.thirdPartyPlugins`).
+    public nonisolated let allowsThirdParty: Bool
     private let activationTimeout: TimeInterval
     private var registrations: [String: Registration] = [:]
     private var order: [String] = []
@@ -60,6 +62,23 @@ public actor PluginHost {
         order.append(manifest.id)
     }
 
+    /// Swaps the implementation of a registered third-party plugin (an update), keeping its
+    /// grants and enabled state. The old version is deactivated; activate the new one with
+    /// `activate(_:)`.
+    public func replace(_ plugin: any LumenPlugin) async throws {
+        let manifest = plugin.manifest
+        let issues = manifest.validationIssues()
+        guard issues.isEmpty else { throw PluginError.invalidManifest(issues) }
+        guard let registration = registrations[manifest.id] else { throw PluginError.unknownPlugin(manifest.id) }
+        guard !registration.isBuiltIn else { throw PluginError.builtInCannotBeRemoved(manifest.id) }
+        await deactivate(manifest.id)
+        registrations[manifest.id] = Registration(plugin: plugin, isBuiltIn: false, state: .inactive)
+    }
+
+    public func isRegistered(_ id: String) -> Bool {
+        registrations[id] != nil
+    }
+
     /// Removes a third-party plugin and forgets its grants.
     public func uninstall(_ id: String) async throws {
         guard let registration = registrations[id] else { throw PluginError.unknownPlugin(id) }
@@ -78,6 +97,37 @@ public actor PluginHost {
         var record = try await storedRecord(id)
         record.granted.formUnion(allowed)
         try await save(record, for: id)
+        publishPermissionsChanged(id)
+    }
+
+    /// Replaces the granted capabilities with exactly `capabilities` (limited to what the plugin
+    /// declares). An active plugin is restarted so the change applies immediately.
+    public func setGrants(_ capabilities: Set<PluginCapability>, for id: String) async throws {
+        guard let registration = registrations[id] else { throw PluginError.unknownPlugin(id) }
+        var record = try await storedRecord(id)
+        let granted = capabilities.intersection(registration.plugin.manifest.capabilities)
+        guard granted != record.granted else { return }
+        record.granted = granted
+        try await save(record, for: id)
+        publishPermissionsChanged(id)
+        if registration.state.isActive {
+            await deactivate(id)
+            await activate(id)
+        }
+    }
+
+    /// Restarts an active plugin so it rereads what it depends on (for example its granted hosts).
+    public func restart(_ id: String) async {
+        guard registrations[id]?.state.isActive == true else { return }
+        await deactivate(id)
+        await activate(id)
+    }
+
+    /// Capabilities granted to a plugin (every declared one for built-in features).
+    public func grantedCapabilities(of id: String) async throws -> Set<PluginCapability> {
+        guard let registration = registrations[id] else { throw PluginError.unknownPlugin(id) }
+        if registration.isBuiltIn { return registration.plugin.manifest.capabilities }
+        return try await storedRecord(id).granted.intersection(registration.plugin.manifest.capabilities)
     }
 
     /// Revokes capabilities; an active plugin is restarted so it loses access immediately.
@@ -86,6 +136,7 @@ public actor PluginHost {
         var record = try await storedRecord(id)
         record.granted.subtract(capabilities)
         try await save(record, for: id)
+        publishPermissionsChanged(id)
         if registration.state.isActive {
             await deactivate(id)
             await activate(id)
@@ -133,13 +184,13 @@ public actor PluginHost {
         }
         guard record.isEnabled else { return setState(.disabled, for: id) }
         let granted = registration.isBuiltIn ? manifest.capabilities : record.granted
-        let missing = manifest.capabilities.subtracting(granted)
+        let missing = manifest.requiredCapabilities.subtracting(granted)
         guard missing.isEmpty else { return setState(.needsPermission(missing), for: id) }
 
         let context = PluginContext(
             pluginID: id,
             declared: manifest.capabilities,
-            granted: granted,
+            granted: granted.intersection(manifest.capabilities),
             registry: registry,
             services: services,
             logger: logging.logger("plugin.\(id)")
@@ -210,6 +261,10 @@ public actor PluginHost {
             events.publish(DomainEvent(name: Self.stateChangedEvent, attributes: ["plugin": .string(id)], actor: .system, occurredAt: timeSource.now()))
         }
         return state
+    }
+
+    private func publishPermissionsChanged(_ id: String) {
+        events.publish(DomainEvent(name: Self.permissionsChangedEvent, attributes: ["plugin": .string(id)], actor: .user, occurredAt: timeSource.now()))
     }
 
     private struct GrantRecord: Sendable {
