@@ -13,6 +13,13 @@ struct AssistantView: View {
     let model: AppModel
     @State private var conversations: ConversationsViewModel
     @State private var isConfigured = true
+    @State private var shortcutLaunch: ShortcutLaunch?
+
+    /// A conversation started from a plugin's prompt shortcut, opened with the prompt in the composer.
+    struct ShortcutLaunch: Hashable {
+        let conversationID: Conversation.ID
+        let prompt: String
+    }
 
     init(services: LumenServices, model: AppModel) {
         self.services = services
@@ -36,6 +43,9 @@ struct AssistantView: View {
                 isConfigured = await services.isAssistantConfigured()
                 await conversations.start()
             }
+            .navigationDestination(item: $shortcutLaunch) { launch in
+                ChatView(conversationID: launch.conversationID, services: services, model: model, initialDraft: launch.prompt)
+            }
     }
 
     @ViewBuilder
@@ -58,25 +68,44 @@ struct AssistantView: View {
                 SkeletonRows().padding(LumenSpace.screen).frame(maxHeight: .infinity, alignment: .top)
             case .failed(let error):
                 StateMessage(error.title, message: error.message, symbolName: "exclamationmark.triangle")
-            case .loaded(let list) where list.isEmpty:
+            case .loaded(let list) where list.isEmpty && conversations.shortcuts.isEmpty:
                 StateMessage("Ask anything", message: "Plan your day, find a note, or have Lumen create tasks for you.", symbolName: "bubble.left.and.text.bubble.right", actionTitle: "Start a conversation") {
                     Task { await startConversation() }
                 }
             case .loaded(let list):
-                List(list) { conversation in
-                    NavigationLink(value: AppDestination.entity(conversation.reference)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: LumenSpace.xs) {
-                                if conversation.isPinned { Image(systemName: "pin.fill").font(.caption2).foregroundStyle(LumenColor.accent) }
-                                Text(conversation.title.isEmpty ? "New conversation" : conversation.title).lumenText(.body).lineLimit(1)
+                List {
+                    if !conversations.shortcuts.isEmpty {
+                        Section("Shortcuts") {
+                            ForEach(conversations.shortcuts) { shortcut in
+                                Button { Task { await start(shortcut) } } label: {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(shortcut.title).lumenText(.body).foregroundStyle(LumenColor.textPrimary)
+                                        Text(shortcut.prompt).lumenText(.caption).foregroundStyle(LumenColor.textSecondary).lineLimit(2)
+                                        Text(shortcut.pluginName).lumenText(.caption).foregroundStyle(LumenColor.textTertiary)
+                                    }
+                                }
+                                .accessibilityHint("Starts a conversation with this prompt ready to send")
+                                .listRowBackground(LumenColor.surface)
                             }
-                            Text(conversation.updatedAt, style: .relative).lumenText(.caption).foregroundStyle(LumenColor.textSecondary)
                         }
                     }
-                    .listRowBackground(LumenColor.surface)
-                    .swipeActions {
-                        Button(role: .destructive) { Task { await conversations.delete(conversation.id) } } label: { Label("Delete", systemImage: "trash") }
-                        Button { Task { await conversations.setPinned(!conversation.isPinned, for: conversation.id) } } label: { Label("Pin", systemImage: "pin") }
+                    Section {
+                        ForEach(list) { conversation in
+                            NavigationLink(value: AppDestination.entity(conversation.reference)) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: LumenSpace.xs) {
+                                        if conversation.isPinned { Image(systemName: "pin.fill").font(.caption2).foregroundStyle(LumenColor.accent) }
+                                        Text(conversation.title.isEmpty ? "New conversation" : conversation.title).lumenText(.body).lineLimit(1)
+                                    }
+                                    Text(conversation.updatedAt, style: .relative).lumenText(.caption).foregroundStyle(LumenColor.textSecondary)
+                                }
+                            }
+                            .listRowBackground(LumenColor.surface)
+                            .swipeActions {
+                                Button(role: .destructive) { Task { await conversations.delete(conversation.id) } } label: { Label("Delete", systemImage: "trash") }
+                                Button { Task { await conversations.setPinned(!conversation.isPinned, for: conversation.id) } } label: { Label("Pin", systemImage: "pin") }
+                            }
+                        }
                     }
                 }
             }
@@ -107,6 +136,13 @@ struct AssistantView: View {
         }
     }
 
+    /// Starts a conversation with a plugin's prompt in the composer; the user reads and sends it.
+    private func start(_ shortcut: PromptShortcut) async {
+        if let conversation = await conversations.create() {
+            shortcutLaunch = ShortcutLaunch(conversationID: conversation.id, prompt: shortcut.prompt)
+        }
+    }
+
     private func startConversation() async {
         if let conversation = await conversations.create() {
             model.router.push(.entity(conversation.reference))
@@ -122,10 +158,10 @@ struct ChatView: View {
     @State private var isPickingAttachments = false
     @FocusState private var composerFocused: Bool
 
-    init(conversationID: Conversation.ID, services: LumenServices, model: AppModel) {
+    init(conversationID: Conversation.ID, services: LumenServices, model: AppModel, initialDraft: String = "") {
         self.services = services
         self.model = model
-        _chat = State(initialValue: ChatViewModel(conversationID: conversationID, services: services))
+        _chat = State(initialValue: ChatViewModel(conversationID: conversationID, services: services, initialDraft: initialDraft))
     }
 
     var body: some View {

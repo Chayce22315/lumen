@@ -5,7 +5,6 @@ import LumenDesignSystem
 import LumenPresentation
 import LumenApplication
 import LumenSync
-import LumenPlugins
 
 struct SyncSettingsView: View {
     let settings: SettingsViewModel
@@ -71,58 +70,6 @@ struct SyncSettingsView: View {
         case .syncing: return "Syncing"
         case .offline: return "Offline"
         case .failed(let error): return error.title
-        }
-    }
-}
-
-struct PluginsSettingsView: View {
-    let settings: SettingsViewModel
-
-    var body: some View {
-        Form {
-            ForEach(settings.plugins) { plugin in
-                Section {
-                    LabeledContent("Status", value: stateText(plugin.state))
-                    ForEach(plugin.manifest.capabilities.sorted(), id: \.self) { capability in
-                        if plugin.isBuiltIn {
-                            Label(capability.title, systemImage: "checkmark").lumenText(.subheadline)
-                        } else {
-                            Toggle(capability.title, isOn: Binding(
-                                get: { plugin.grantedCapabilities.contains(capability) },
-                                set: { granted in
-                                    Task {
-                                        if granted { await settings.grant([capability], to: plugin.id) } else { await settings.revoke([capability], from: plugin.id) }
-                                    }
-                                }
-                            ))
-                            .tint(capability.risk == .high ? LumenColor.warning : LumenColor.accent)
-                        }
-                    }
-                    if !plugin.isBuiltIn {
-                        Toggle("Enabled", isOn: Binding(
-                            get: { plugin.state != .disabled },
-                            set: { value in Task { await settings.setEnabled(value, plugin: plugin.id) } }
-                        ))
-                    }
-                } header: {
-                    Text(plugin.manifest.name)
-                } footer: {
-                    Text("\(plugin.manifest.summary) Version \(plugin.manifest.version.description)\(plugin.isBuiltIn ? " · Built in" : "").")
-                }
-            }
-        }
-        .navigationTitle("Plugins")
-    }
-
-    private func stateText(_ state: PluginState) -> String {
-        switch state {
-        case .active: return "Active"
-        case .inactive: return "Inactive"
-        case .disabled: return "Off"
-        case .needsPermission: return "Needs permission"
-        case .failed(let message): return "Failed: \(message)"
-        case .incompatible: return "Needs a newer Lumen"
-        case .blocked: return "Not allowed in this build"
         }
     }
 }
