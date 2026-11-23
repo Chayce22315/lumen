@@ -31,6 +31,10 @@ public actor FocusCoordinator {
     private let logger: Logger
     private var consumer: Task<Void, Never>?
     private var countdown: Task<Void, Never>?
+    /// The last queued unit of work. Work runs one unit at a time, in order: the actor alone
+    /// would interleave two updates at their suspension points (posting an alert twice, or
+    /// cancelling the one just posted).
+    private var tail: Task<Void, Never>?
     private var alert: AlertState = .unknown
     /// Focus events handled since `start()`, for deterministic waiting in tests.
     public private(set) var handledEvents = 0
@@ -67,6 +71,7 @@ public actor FocusCoordinator {
     public func stop() {
         consumer?.cancel()
         consumer = nil
+        tail = nil
         countdown?.cancel()
         countdown = nil
     }
@@ -75,6 +80,22 @@ public actor FocusCoordinator {
     /// that just completed) and schedules its alert and wake-up — or clears them when nothing is
     /// active. Safe to call any number of times.
     public func reconcile() async {
+        await serially { await $0.bringUpToDate() }
+    }
+
+    /// Runs `work` after every unit queued before it.
+    private func serially(_ work: @escaping @Sendable (FocusCoordinator) async -> Void) async {
+        let previous = tail
+        let next = Task { [weak self] in
+            await previous?.value
+            guard let self else { return }
+            await work(self)
+        }
+        tail = next
+        await next.value
+    }
+
+    private func bringUpToDate() async {
         do {
             let ending = try await focus.completeIfDue()
             if let active = try await focus.activeSession() {
@@ -103,19 +124,27 @@ public actor FocusCoordinator {
     // MARK: - Internals
 
     private func handle(_ event: DomainEvent) async {
-        defer { handledEvents += 1 }
-        if event.name == OrganizationEvent.focusCompleted || event.name == OrganizationEvent.focusCancelled, let id = event.entity?.id {
-            // The ended session's activity shows its final state; then whatever is active now
-            // (perhaps a session started right after) takes over the countdown and the alert.
-            do {
-                if let session = try await focus.session(FocusSession.ID(id)), !session.isActive {
-                    await present(FocusActivityContent(session: session, title: await title(of: session)))
-                }
-            } catch {
-                logger.error("Ended focus session could not be read", error: error)
+        let ended = event.name == OrganizationEvent.focusCompleted || event.name == OrganizationEvent.focusCancelled
+        let id = event.entity.map { FocusSession.ID($0.id) }
+        await serially { coordinator in
+            if ended, let id {
+                await coordinator.showFinalState(of: id)
             }
+            await coordinator.bringUpToDate()
         }
-        await reconcile()
+        handledEvents += 1
+    }
+
+    /// The ended session's activity shows its final state; then whatever is active now (perhaps
+    /// a session started right after) takes over the countdown and the alert.
+    private func showFinalState(of id: FocusSession.ID) async {
+        do {
+            if let session = try await focus.session(id), !session.isActive {
+                await present(FocusActivityContent(session: session, title: await title(of: session)))
+            }
+        } catch {
+            logger.error("Ended focus session could not be read", error: error)
+        }
     }
 
     /// Shows the active session or, when none is active, the one that just ended.
