@@ -35,6 +35,8 @@ jobs:
         run: |
           xcodebuild -version
           swift --version
+      - name: Privacy manifest audit
+        run: scripts/audit-privacy-apis.sh
       - name: LumenKit tests on macOS
         run: swift test --package-path Packages/LumenKit
       - name: Build app for iOS Simulator
@@ -59,9 +61,25 @@ jobs:
           fi
           grep -E "warning: " build/xcodebuild.log | grep -v "/DerivedData/" | sort -u | head -100 || true
           echo "BUILD SUCCEEDED"
-      - name: UI smoke tests on iOS Simulator
+      - name: UI smoke tests and screenshots on iOS Simulator
         if: hashFiles('Lumen.xcodeproj/project.pbxproj') != ''
         run: scripts/ios-ui-tests.sh
+      - name: Export screenshots
+        run: scripts/export-screenshots.sh build/UITests.xcresult build/screenshots
+      - name: Keep the screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: build/screenshots
+          if-no-files-found: error
+      - name: Release build for devices (unsigned) and IPA
+        run: scripts/build-unsigned-ipa.sh
+      - name: Keep the unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lumen-unsigned-ipa
+          path: build/Lumen-unsigned.ipa
+          if-no-files-found: error
       - name: Keep the UI test results
         if: failure()
         uses: actions/upload-artifact@v4

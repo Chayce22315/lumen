@@ -56,13 +56,18 @@ swift test --package-path Packages/LumenKit
 
 ### The app
 
-Open `Lumen.xcodeproj`, select the **Lumen** scheme and an iOS 18+ simulator, then build.
+Open `Lumen.xcodeproj`, select the **Lumen** scheme and an iOS 18+ simulator, then build. No
+Apple account is needed for the simulator.
 
-To run on a device, set your team on both targets (Signing & Capabilities). The app and the widget
-share data through the App Group `group.app.lumen` (`App/Configuration/*.entitlements` and
-`SharedContainer.appGroupIdentifier`); change both if you use another identifier. Without a
-provisioned App Group the app falls back to its own container and the widget shows its
-"open Lumen" state.
+Nothing in the project requires a paid Apple Developer Program membership; `RELEASE.md` describes
+running on your own iPhone with a free Apple ID and the optional App Store milestone. Signing and
+identifiers come from `App/Configuration/Lumen.xcconfig` (the project's base configuration):
+put your team and a bundle prefix of your own in `App/Configuration/Signing.local.xcconfig`
+(ignored by git; copy the `.example`), never in the project file. The App Group follows the
+prefix (`LUMEN_APP_GROUP`), feeds both targets' entitlements and their Info.plists
+(`LumenAppGroupIdentifier`, read by `SharedContainer`); `LUMEN_ENTITLEMENTS_VARIANT = -NoAppGroup`
+builds without it, and the app then keeps its data in its own container while the widget shows
+its "Open Lumen" state.
 
 The assistant needs an API key for Anthropic or OpenAI, entered in Settings › Assistant; it is
 stored only in the Keychain.
@@ -142,9 +147,11 @@ the argument. Controls the tests reach for carry an `accessibilityIdentifier`
 `.github/workflows/ci.yml` runs on every push:
 
 - **linux** — `swift test` for LumenKit in Swift 6.1 and 6.2 containers.
-- **apple** — `swift test` for LumenKit on macOS (exercises the Apple-only code paths such as the
-  SDK SQLite module and Keychain), an `xcodebuild` of the app for the iOS Simulator, then the UI
-  smoke tests on an iPhone simulator (the result bundle is uploaded when they fail).
+- **apple** — the privacy manifest audit, `swift test` for LumenKit on macOS (exercises the
+  Apple-only code paths such as the SDK SQLite module and Keychain), an `xcodebuild` of the app for
+  the iOS Simulator, the UI smoke tests and screenshot capture on an iPhone simulator (screenshots
+  are kept as the `screenshots` artifact; the result bundle is uploaded when tests fail), then the
+  Release build for devices, unsigned, kept as `Lumen-unsigned.ipa`.
 
 A change is not done until both jobs are green.
 

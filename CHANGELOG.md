@@ -88,6 +88,13 @@ All notable changes to Lumen are recorded here. The format follows
 - App icon (default, dark and tinted appearances) rendered by `Tools/AppIcon/render.py`; accent
   color and a launch screen in the palette's background color, so launch no longer flashes white.
 
+- Free release setup (no paid Apple Developer Program needed): signing, versions and identifiers
+  in `App/Configuration/Lumen.xcconfig` with a git-ignored `Signing.local.xcconfig` for your team
+  and bundle prefix; the App Group follows the prefix and can be switched off for teams that can't
+  provision it; privacy manifests with an audit script; export-compliance key; privacy policy;
+  store listing drafts; screenshot capture from sample content in UI tests; a Release device build
+  and unsigned IPA on every CI run. See `RELEASE.md`.
+
 ### Fixed
 - Editing an existing automation flattened its graph into a linear chain (dropping branches), turned
   non-daily schedules into daily ones and removed event-trigger conditions. The editor now edits the

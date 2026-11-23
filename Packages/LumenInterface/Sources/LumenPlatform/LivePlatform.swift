@@ -86,7 +86,13 @@ public enum LivePlatform {
                 notificationScheduler: InertNotificationScheduler(),
                 httpTransport: OfflineTransport()
             )
-            return try await LumenBootstrap.make(configuration: configuration, platform: platform)
+            let services = try await LumenBootstrap.make(configuration: configuration, platform: platform)
+            #if DEBUG
+            if ScreenshotFixture.isRequested() {
+                try await ScreenshotFixture.seed(services)
+            }
+            #endif
+            return services
         }
     }
 

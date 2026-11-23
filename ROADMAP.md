@@ -68,6 +68,13 @@ with tests, and keeps both CI jobs green. Status reflects what is in the reposit
 - [x] Text for documents imported before their format could be read: a backfill runs once per
   extraction version behind launch and in background refresh, reading only files on the device.
 
+## Free release setup ✅
+
+Lumen is built, tested and used without a paid Apple Developer Program membership (`RELEASE.md`):
+simulator and free personal-device signing, unsigned Release IPA from CI, privacy manifests,
+export compliance, privacy policy, store listing and screenshots prepared. TestFlight and App Store
+distribution are an optional future milestone, never a blocker; no feature depends on them.
+
 ## Phase 6 — Platform reach
 
 - iPad layouts (sidebar navigation), keyboard shortcuts for the command palette.

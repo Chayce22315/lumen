@@ -8,14 +8,19 @@ Lumen.xcodeproj/              Xcode project (synchronized folders, shared scheme
 App/Lumen/                    App target: entry point, App Intents, asset catalog (icon, colors)
 App/LumenWidgets/             Widget extension: Today widget (interactive), Lock Screen widgets
 App/LumenUITests/             XCUITest smoke tests: launch, capture, completion, search
-App/Configuration/            Info.plists and entitlements
+App/Configuration/            Base xcconfig (versions, signing, identifiers), Info.plists, entitlements
 Packages/LumenKit/            Portable modules (Linux-testable)
 Packages/LumenInterface/      SwiftUI modules (Apple only)
 Tools/LinuxToolchain/         Pinned Swift toolchain image
 Tools/AppIcon/render.py       Renders the app icon variants into the asset catalog (Pillow)
 scripts/lumenkit-linux.sh     Build/test LumenKit in the container
-scripts/ios-ui-tests.sh       Run the UI smoke tests on the newest iPhone simulator
+scripts/ios-ui-tests.sh       Run the UI smoke tests and screenshot capture on the newest iPhone simulator
+scripts/export-screenshots.sh Copy the captured screenshots out of the test results
+scripts/build-unsigned-ipa.sh Release build for devices without signing → build/Lumen-unsigned.ipa
+scripts/set-version.sh        Set the marketing version and build number
+scripts/audit-privacy-apis.sh Check the sources against the privacy manifest
 scripts/update-file-structure.py  Refresh the counts in this file
+Release/metadata/en-US/       Store listing drafts (name, subtitle, description, keywords)
 .github/workflows/ci.yml      CI: Linux 6.1/6.2, macOS tests, iOS Simulator build and UI tests
 ```
 
@@ -25,7 +30,7 @@ scripts/update-file-structure.py  Refresh the counts in this file
 | --- | --- | ---: | ---: |
 | `CSQLite` | System SQLite module map (Linux only) | 0 | — |
 | `LumenAnalytics` | Event collection, aggregates, streaks, insights, reports | 30 | 10 |
-| `LumenApplication` | Composition root, runtime, integrations, Home, reminders, widgets, deep links | 25 | 6 |
+| `LumenApplication` | Composition root, runtime, integrations, Home, reminders, widgets, deep links | 25 | 7 |
 | `LumenAutomation` | Workflows, triggers, conditions, templates, executor, scheduler | 38 | 16 |
 | `LumenCore` | Event bus, action context, settings, secrets (Keychain), errors, configuration | 8 | 3 |
 | `LumenDesignTokens` | Palette, spacing, radii, type ramp, motion values, contrast math | 5 | 1 |
@@ -47,10 +52,10 @@ scripts/update-file-structure.py  Refresh the counts in this file
 | Module | Responsibility | Files | Tests |
 | --- | --- | ---: | ---: |
 | `LumenDesignSystem` | SwiftUI colors, typography, motion, components | 11 | — |
-| `LumenPlatform` | EventKit (read/write), CloudKit adapter, PDFKit extraction, background refresh, Keychain/UserNotifications wiring, WidgetKit reloads, shared services | 6 | — |
+| `LumenPlatform` | EventKit (read/write), CloudKit adapter, PDFKit extraction, background refresh, Keychain/UserNotifications wiring, WidgetKit reloads, shared services | 7 | — |
 | `LumenUI` | Screens and navigation | 31 | — |
 
-**Totals:** 373 source files and 105 test files in the packages, plus 5 in the app targets (app, widget, UI tests).
+**Totals:** 374 source files and 106 test files in the packages, plus 6 in the app targets (app, widget, UI tests).
 
 ## Module layout
 
@@ -157,7 +162,7 @@ Packages/LumenKit/Sources/LumenSync/Services/  (2)
 Packages/LumenKit/Sources/LumenTestSupport/  (3)
 Packages/LumenKit/Sources/LumenWidgetData/  (2)
 Packages/LumenKit/Tests/LumenAnalyticsTests/  (10)
-Packages/LumenKit/Tests/LumenApplicationTests/  (6)
+Packages/LumenKit/Tests/LumenApplicationTests/  (7)
 Packages/LumenKit/Tests/LumenAutomationTests/  (16)
 Packages/LumenKit/Tests/LumenCoreTests/  (3)
 Packages/LumenKit/Tests/LumenDesignTokensTests/  (1)
@@ -175,7 +180,7 @@ Packages/LumenKit/Tests/LumenSyncTests/  (5)
 Packages/LumenInterface/Sources/LumenDesignSystem/Components/  (6)
 Packages/LumenInterface/Sources/LumenDesignSystem/Motion/  (2)
 Packages/LumenInterface/Sources/LumenDesignSystem/Tokens/  (3)
-Packages/LumenInterface/Sources/LumenPlatform/  (6)
+Packages/LumenInterface/Sources/LumenPlatform/  (7)
 Packages/LumenInterface/Sources/LumenUI/Assistant/  (2)
 Packages/LumenInterface/Sources/LumenUI/Automations/  (6)
 Packages/LumenInterface/Sources/LumenUI/Calendar/  (2)
