@@ -254,7 +254,11 @@ public enum LumenBootstrap {
             intelligence: intelligence, automation: automation, search: search, analytics: analytics, sync: sync,
             documentFiles: documentFiles,
             plugins: PluginServices(host: host, extensions: extensions), commands: commandCenter, home: home, widgets: widgets,
-            focus: focus
+            focus: focus,
+            spotlight: SystemSearchIndexer(
+                index: platform.systemSearchIndex, tasks: tasks, notes: notes, settings: settings, events: events,
+                calendar: calendar, logger: logging.logger("spotlight")
+            )
         )
         logger.info("Services created", metadata: ["flavor": configuration.flavor.rawValue])
         return services

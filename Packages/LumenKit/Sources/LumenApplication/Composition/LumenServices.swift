@@ -91,6 +91,8 @@ public final class LumenServices: Sendable {
     public let home: HomeService
     public let widgets: WidgetSnapshotPublisher
     public let focus: FocusServices
+    /// Tasks and notes in Spotlight.
+    public let spotlight: SystemSearchIndexer
 
     init(
         configuration: AppConfiguration,
@@ -116,7 +118,8 @@ public final class LumenServices: Sendable {
         commands: CommandCenter,
         home: HomeService,
         widgets: WidgetSnapshotPublisher,
-        focus: FocusServices
+        focus: FocusServices,
+        spotlight: SystemSearchIndexer
     ) {
         self.configuration = configuration
         self.timeSource = timeSource
@@ -142,6 +145,7 @@ public final class LumenServices: Sendable {
         self.home = home
         self.widgets = widgets
         self.focus = focus
+        self.spotlight = spotlight
     }
 
     /// Whether the assistant has a model and credentials to answer with.

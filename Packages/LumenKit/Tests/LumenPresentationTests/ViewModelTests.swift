@@ -34,6 +34,22 @@ struct AppModelTests {
         await runtime.shutdown()
     }
 
+    @Test("Spotlight results open their entity, also when they arrive during launch")
+    func spotlightContinuation() async throws {
+        let (services, runtime) = try await makeServices()
+        let task = try await services.organization.tasks.create(TaskDraft(title: "From Spotlight"))
+        let model = AppModel(makeServices: { services })
+        #expect(model.openSearchableItem(identifier: task.reference.uri))
+        #expect(model.router.homePath.isEmpty)
+        await model.launch()
+        #expect(model.router.homePath == [.entity(task.reference)])
+
+        #expect(!model.openSearchableItem(identifier: "workflow:\(UUID().uuidString)"))
+        #expect(!model.openSearchableItem(identifier: "not an identifier"))
+        #expect(model.router.homePath == [.entity(task.reference)])
+        await runtime.shutdown()
+    }
+
     @Test("a failing launch is presented and can be retried")
     func failedLaunch() async {
         struct Broken: Error {}
