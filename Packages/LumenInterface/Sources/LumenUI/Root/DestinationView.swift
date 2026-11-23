@@ -66,6 +66,8 @@ struct EntityView: View {
             WorkflowEditorView(services: services, workflowID: Workflow.ID(reference.id))
         case .workflowRun:
             RunDetailView(services: services, runID: WorkflowRun.ID(reference.id))
+        case .focusSession:
+            FocusView(sessionID: FocusSession.ID(reference.id), services: services, model: model)
         default:
             StateMessage("Can't open this", message: "Lumen doesn't know how to show this kind of item yet.", symbolName: "questionmark.square.dashed")
         }

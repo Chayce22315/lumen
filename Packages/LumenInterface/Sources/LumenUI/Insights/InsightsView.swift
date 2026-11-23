@@ -30,6 +30,17 @@ struct InsightsView: View {
                 case .failed(let error):
                     StateMessage(error.title, message: error.message, symbolName: "exclamationmark.triangle")
                 case .loaded(let report):
+                    if insights.focusMinutes > 0 {
+                        Label {
+                            Text("\(insights.focusLabel) of focus in this period")
+                        } icon: {
+                            Image(systemName: "timer").foregroundStyle(LumenColor.accent)
+                        }
+                        .lumenText(.headline)
+                        .foregroundStyle(LumenColor.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .lumenSurface(padding: LumenSpace.m)
+                    }
                     ReportView(report: report, calendar: services.calendar)
                 }
                 if !insights.isCollectionEnabled {

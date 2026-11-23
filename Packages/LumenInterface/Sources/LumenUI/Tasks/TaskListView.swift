@@ -11,6 +11,8 @@ struct TaskListView: View {
     let services: LumenServices
     let model: AppModel
     @State private var list: TaskListViewModel
+    /// The task a focus session is being set up for.
+    @State private var focusTask: TaskItem?
 
     init(source: TaskListSource, services: LumenServices, model: AppModel) {
         self.services = services
@@ -31,6 +33,11 @@ struct TaskListView: View {
             }
             .task { await list.start() }
             .refreshable { await list.load() }
+            .sheet(item: $focusTask) { task in
+                FocusSetupView(taskID: task.id, services: services) { session in
+                    model.router.open(.entity(session.reference))
+                }
+            }
     }
 
     @ViewBuilder
@@ -75,6 +82,23 @@ struct TaskListView: View {
                             Label("Tomorrow", systemImage: "arrow.right.circle")
                         }
                         .tint(LumenColor.accentFill)
+                        if row.task.isOpen {
+                            Button {
+                                focusTask = row.task
+                            } label: {
+                                Label("Focus", systemImage: "timer")
+                            }
+                            .tint(LumenColor.warning)
+                        }
+                    }
+                    .contextMenu {
+                        if row.task.isOpen {
+                            Button {
+                                focusTask = row.task
+                            } label: {
+                                Label("Start focus", systemImage: "timer")
+                            }
+                        }
                     }
                 }
                 .onMove(perform: supportsManualOrder ? { source, destination in
