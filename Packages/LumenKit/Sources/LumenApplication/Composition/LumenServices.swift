@@ -90,6 +90,7 @@ public final class LumenServices: Sendable {
     public let commands: CommandCenter
     public let home: HomeService
     public let widgets: WidgetSnapshotPublisher
+    public let focus: FocusServices
 
     init(
         configuration: AppConfiguration,
@@ -114,7 +115,8 @@ public final class LumenServices: Sendable {
         plugins: PluginServices,
         commands: CommandCenter,
         home: HomeService,
-        widgets: WidgetSnapshotPublisher
+        widgets: WidgetSnapshotPublisher,
+        focus: FocusServices
     ) {
         self.configuration = configuration
         self.timeSource = timeSource
@@ -139,6 +141,7 @@ public final class LumenServices: Sendable {
         self.commands = commands
         self.home = home
         self.widgets = widgets
+        self.focus = focus
     }
 
     /// Whether the assistant has a model and credentials to answer with.

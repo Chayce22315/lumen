@@ -156,6 +156,14 @@ struct BuiltInTriggerSource: AutomationTriggerSource {
         return [
             AutomationTriggerDescriptor(eventName: OrganizationEvent.taskCreated, title: "Task added", summary: "When a task is created.", symbolName: "plus.circle", category: "Tasks", attributes: taskAttributes),
             AutomationTriggerDescriptor(eventName: OrganizationEvent.taskCompleted, title: "Task completed", summary: "When a task is marked done.", symbolName: "checkmark.circle", category: "Tasks", attributes: taskAttributes),
+            AutomationTriggerDescriptor(
+                eventName: OrganizationEvent.focusCompleted, title: "Focus session completed", summary: "When a focus session finishes.",
+                symbolName: "timer", category: "Focus",
+                attributes: [
+                    TriggerAttributeSpec(name: "focusedMinutes", title: "Minutes focused", valueType: .number),
+                    TriggerAttributeSpec(name: "taskID", title: "Task", valueType: .string),
+                ]
+            ),
             AutomationTriggerDescriptor(eventName: OrganizationEvent.projectCompleted, title: "Project completed", summary: "When a project is marked completed.", symbolName: "flag.checkered", category: "Projects"),
             AutomationTriggerDescriptor(eventName: OrganizationEvent.eventCreated, title: "Event scheduled", summary: "When a calendar event is created.", symbolName: "calendar.badge.plus", category: "Calendar"),
             AutomationTriggerDescriptor(eventName: KnowledgeEvents.noteCreated, title: "Note created", summary: "When a note is written.", symbolName: "square.and.pencil", category: "Notes"),

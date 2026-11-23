@@ -30,6 +30,9 @@ public struct PlatformServices: Sendable {
     public var plugins: [any LumenPlugin]
     /// Asks the system to reload widget timelines after a new snapshot was written.
     public var reloadWidgets: @Sendable () -> Void
+    /// Shows the focus session as a Live Activity (ActivityKit in the app). Set after `init`;
+    /// shows nothing by default.
+    public var focusActivities: any FocusActivityPresenting = InertFocusActivityPresenter()
 
     public init(
         secrets: any SecretStore,

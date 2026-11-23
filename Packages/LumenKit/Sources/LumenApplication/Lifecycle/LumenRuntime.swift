@@ -57,6 +57,7 @@ public actor LumenRuntime {
         await services.widgets.start()
         await services.documentFiles.start()
         await services.automation.engine.start()
+        await services.focus.coordinator.start()
         do {
             _ = try await services.automation.engine.recoverInterruptedRuns()
         } catch {
@@ -77,6 +78,7 @@ public actor LumenRuntime {
 
         await services.organization.reminders.refreshEventWindow()
         await applyWidgetActions()
+        await services.focus.coordinator.reconcile()
         await services.widgets.refresh()
         // Reading files for text is slow and never needed for launch: it runs behind.
         textBackfill = Task(priority: .utility) { [weak self] in
@@ -112,6 +114,7 @@ public actor LumenRuntime {
     public func didBecomeActive() async {
         guard started else { return }
         await applyWidgetActions()
+        await services.focus.coordinator.reconcile()
         await tickAutomations()
         await services.organization.reminders.refreshEventWindow()
         _ = await services.sync.synchronizeIfDue()
@@ -134,6 +137,7 @@ public actor LumenRuntime {
         textBackfill?.cancel()
         await textBackfill?.value
         textBackfill = nil
+        await services.focus.coordinator.stop()
         await services.automation.engine.stop()
         await services.documentFiles.stop()
         await services.widgets.stop()
