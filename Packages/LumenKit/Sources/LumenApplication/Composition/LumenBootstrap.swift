@@ -190,6 +190,21 @@ public enum LumenBootstrap {
             logging: logging,
             allowsThirdParty: configuration.isEnabled(.thirdPartyPlugins)
         )
+        // Third-party packages run through the same host; their contents are executed by the
+        // engines above (templates, commands, prompts, webhook steps over `transport`).
+        let pluginLogger = logging.logger("plugins.packages")
+        let templates = PluginTemplateService(engine: automationEngine, owned: PluginOwnedEntityStore(database: database), extensions: extensions, timeSource: timeSource)
+        let packages = PluginPackageManager(
+            database: database,
+            host: host,
+            events: events,
+            timeSource: timeSource,
+            logger: pluginLogger,
+            verifier: platform.pluginSignatureVerifier ?? PluginSignatureVerifiers.platformDefault,
+            digest: { SHA256.hexDigest(of: $0) },
+            integration: PackagedPluginIntegration(automation: automationEngine, extensions: extensions, templates: templates, transport: transport, logger: pluginLogger),
+            downloader: TransportPluginDownloader(transport: transport)
+        )
         try await host.register(CoreFeature(), isBuiltIn: true)
         try await host.register(OrganizationFeature(tasks: tasks, projects: projects, calendars: calendars), isBuiltIn: true)
         try await host.register(KnowledgeFeature(notes: notes, collections: collections, documents: documents, timeSource: timeSource, calendar: calendar), isBuiltIn: true)
@@ -220,6 +235,7 @@ public enum LumenBootstrap {
                 errors.report(error, context: "Registering plugin \(plugin.manifest.id)")
             }
         }
+        await packages.registerInstalled()
 
         let home = HomeService(
             tasks: tasks, projects: projects, agenda: agenda, notes: notes, notifications: notifications, analytics: analytics,
@@ -237,7 +253,7 @@ public enum LumenBootstrap {
             notifications: notifications, organization: organization, knowledge: knowledge,
             intelligence: intelligence, automation: automation, search: search, analytics: analytics, sync: sync,
             documentFiles: documentFiles,
-            plugins: PluginServices(host: host, extensions: extensions), commands: commandCenter, home: home, widgets: widgets
+            plugins: PluginServices(host: host, extensions: extensions, packages: packages, templates: templates), commands: commandCenter, home: home, widgets: widgets
         )
         logger.info("Services created", metadata: ["flavor": configuration.flavor.rawValue])
         return services

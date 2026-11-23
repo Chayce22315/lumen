@@ -28,6 +28,9 @@ public struct PlatformServices: Sendable {
     public var additionalLogSinks: [any LogSink]
     /// Third-party plugins bundled with or installed into this build.
     public var plugins: [any LumenPlugin]
+    /// Checks plugin package signatures. `nil` uses CryptoKit's Ed25519 where available and
+    /// refuses signed packages elsewhere. Set after `init` (tests use a fake).
+    public var pluginSignatureVerifier: (any PluginSignatureVerifier)?
     /// Asks the system to reload widget timelines after a new snapshot was written.
     public var reloadWidgets: @Sendable () -> Void
 
