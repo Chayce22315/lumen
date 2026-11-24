@@ -127,6 +127,10 @@ All notable changes to Lumen are recorded here. The format follows
   switch.
 
 ### Fixed
+- A plugin file opened from another app ("Open in Lumen") left its copy in `Documents/Inbox`; the
+  copy is now deleted once it has been read. The user's own files are never touched.
+- CI no longer runs actions on the deprecated Node.js 20 runtime (`actions/checkout@v5`,
+  `actions/upload-artifact@v6`, both Node.js 24).
 - Editing an existing automation flattened its graph into a linear chain (dropping branches), turned
   non-daily schedules into daily ones and removed event-trigger conditions. The editor now edits the
   stored graph and keeps triggers it can't change in place.

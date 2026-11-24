@@ -20,7 +20,7 @@ jobs:
         swift: ["6.1", "6.2"]
     container: swift:${{ matrix.swift }}-noble
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install SQLite headers
         run: apt-get update && apt-get install -y --no-install-recommends libsqlite3-dev
       - name: Build and test
@@ -30,7 +30,7 @@ jobs:
     name: LumenKit (macOS) + iOS app
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Toolchain
         run: |
           xcodebuild -version
@@ -67,7 +67,7 @@ jobs:
       - name: Export screenshots
         run: scripts/export-screenshots.sh build/UITests.xcresult build/screenshots
       - name: Keep the screenshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: screenshots
           path: build/screenshots
@@ -75,14 +75,14 @@ jobs:
       - name: Release build for devices (unsigned) and IPA
         run: scripts/build-unsigned-ipa.sh
       - name: Keep the unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Lumen-unsigned-ipa
           path: build/Lumen-unsigned.ipa
           if-no-files-found: error
       - name: Keep the UI test results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ui-test-results
           path: |
