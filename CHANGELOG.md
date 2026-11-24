@@ -95,6 +95,18 @@ All notable changes to Lumen are recorded here. The format follows
   the window is resized. Pointer hover effects.
 - Keyboard shortcuts, listed in iPad's ⌘-hold overlay: ⌘K command palette, ⌘N new task, ⌘⇧N new
   note, ⌘F find, ⌘, Settings, ⌘1–⌘5 sections. In the palette, ↑/↓ choose a row, Return opens it.
+- Focus sessions: focus on a task (or nothing in particular) for a chosen length; pause, resume,
+  finish or cancel; optionally complete the task when done. Start from Home, a task row (swipe or
+  context menu), task details, Shortcuts or Siri ("Start Focus"/"Stop Focus"), the assistant
+  (`start_focus`/`stop_focus`) or automations (`organization.startFocus`/`stopFocus`, plus a
+  focus-completed trigger). Sessions are computed from their timestamps, so they survive relaunch;
+  an alert fires when the countdown ends, focused minutes appear in Insights and task details.
+- Live Activities for focus sessions on the Lock Screen and in the Dynamic Island (compact,
+  minimal, expanded) with pause, resume and finish buttons. Local only — no push, no special
+  capability.
+- Spotlight: open tasks and notes (title and a short snippet, never a full note) are indexed on
+  the device and open in Lumen from search results; Settings › Show in Spotlight turns it off and
+  removes everything from the index.
 - Third-party plugins: install `.lumenplugin` packages from Files, the share sheet,
   `lumen://plugin/install?url=…` links or catalogs you add. An install review shows the publisher,
   the signature and its key fingerprint, every permission in plain language, network addresses,

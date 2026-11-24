@@ -24,7 +24,10 @@ Nothing, unless you turn on one of these:
   host and you grant that permission during installation; you can revoke it at any time. Plugins
   are data run by Lumen itself, never code.
 - **System features you use.** Calendar access (to show and create events in your system
-  calendars), notifications, widgets and Shortcuts are handled by iOS on your device.
+  calendars), notifications, widgets, Live Activities and Shortcuts are handled by iOS on your
+  device. Spotlight indexing (on by default, Settings › Show in Spotlight) stores the titles and a
+  short snippet of your open tasks and notes in your device's on-device search index; turning it
+  off removes them.
 
 ## Analytics and tracking
 

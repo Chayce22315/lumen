@@ -47,7 +47,7 @@ public struct CoreSpotlightIndex: SystemSearchIndexing {
         attributes.title = item.title
         attributes.contentDescription = item.snippet
         attributes.keywords = item.keywords
-        attributes.contentModificationDate = item.updatedAt
+        attributes.contentModificationDate = item.updatedAt // privacy-audit: sets the item's own date on Spotlight metadata; reads no file timestamp
         let searchable = CSSearchableItem(uniqueIdentifier: item.identifier, domainIdentifier: item.domain, attributeSet: attributes)
         // Items otherwise expire after a month; Lumen removes them itself when they go.
         searchable.expirationDate = .distantFuture

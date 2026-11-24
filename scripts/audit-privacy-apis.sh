@@ -11,7 +11,8 @@ cd "$(dirname "$0")/.."
 
 pattern='UserDefaults|NSUserDefaults|creationDate|modificationDate|contentModificationDate|fileModificationDate|attributesOfItem|attributesOfFileSystem|systemUptime|mach_absolute_time|volumeAvailableCapacity|volumeTotalCapacity|systemFreeSize|systemSize|activeInputModes|statfs|getattrlist|\bstat\('
 
-if hits=$(grep -rnE "$pattern" --include=*.swift App Packages/LumenKit/Sources Packages/LumenInterface/Sources); then
+# A line can opt out with a trailing "// privacy-audit: <why this is not a required-reason use>".
+if hits=$(grep -rnE "$pattern" --include=*.swift App Packages/LumenKit/Sources Packages/LumenInterface/Sources | grep -v "privacy-audit:"); then
   echo "Required-reason API calls found; declare them in App/*/PrivacyInfo.xcprivacy:"
   echo "$hits"
   exit 1

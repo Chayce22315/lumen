@@ -80,7 +80,9 @@ distribution are an optional future milestone, never a blocker; no feature depen
 - [x] iPad layouts: sidebar navigation (sidebar-adaptable `TabView`), list and detail side by side for
   tasks, projects, notes, conversations and automations; keyboard shortcuts (⌘K palette with arrow
   and Return selection, ⌘N, ⌘⇧N, ⌘F, ⌘,, ⌘1–⌘5) routed through the router and tested on Linux.
-- Spotlight indexing of tasks and notes, Live Activities for focus sessions.
+- [x] Spotlight indexing of tasks and notes (CoreSpotlight, event-driven and batched, with a
+  setting that removes everything); focus sessions with Live Activities on the Lock Screen and in
+  the Dynamic Island, App Intents, assistant tools, automation actions and analytics.
 - [x] Third-party plugin distribution and review flow: signed declarative `.lumenplugin` packages,
   trust on first use per publisher key, install review with per-capability and per-host grants and
   update diffs; Files, install-link and catalog channels (no built-in catalog, no server).

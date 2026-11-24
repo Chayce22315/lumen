@@ -42,7 +42,7 @@ Dependencies point strictly downward. Engines never import each other.
 | `LumenCore` | `EventBus` and `DomainEvent`, `ActionContext`, `SettingsStore`, `SecretStore` (+ Keychain), `ErrorReporter`, `AppConfiguration`, feature flags | Foundation, Persistence |
 | `LumenDesignTokens` | Semantic color palette (dark-first, light variant), spacing, radii, type ramp, motion curves, WCAG contrast checks | — |
 | `LumenNotifications` | In-app inbox, per-category preferences, quiet hours, system delivery via `UNUserNotificationCenter` | Core |
-| `LumenOrganization` | Tasks, projects, calendar events, reminders, recurrence, priorities, dependencies, progress, external calendar source (read and write) | Core |
+| `LumenOrganization` | Tasks, projects, calendar events, reminders, recurrence, priorities, dependencies, progress, external calendar source (read and write), focus sessions | Core |
 | `LumenKnowledge` | Notes, documents, collections, tags, wiki links and backlinks, version history, Markdown structure, platform text extractors (`DocumentTextExtractor`; PDFKit on Apple platforms) | Core |
 | `LumenSearch` | FTS5 global index, ranking, filters, search history, command palette actions | Core |
 | `LumenIntelligence` | Provider abstraction (Anthropic, OpenAI-compatible), streaming, tool calling loop, conversation persistence, memory, context budgeting, retries, token usage, per-conversation model choice, attachments (references resolved through `AttachmentResolver`), conversation search (FTS5) | Core |
@@ -50,11 +50,11 @@ Dependencies point strictly downward. Engines never import each other.
 | `LumenAnalytics` | Local event collection, daily aggregates, productivity insights, comparisons, reports | Core |
 | `LumenSync` | Local-first sync over the change log: per-field LWW entity states, transport abstraction, the cloud transport over `CloudRecordDatabase`, document file sync by SHA-256, conflict records, retry queue, remote-reset recovery, history | Core |
 | `LumenPlugins` | Plugin manifests, capability declarations, permission grants, lifecycle, packages, signatures, trust, catalogs | Core, extension protocols of the engines it hosts |
-| `LumenWidgetData` | The snapshot the widget renders, the widget action queue, the shared App Group location | — |
+| `LumenWidgetData` | The snapshot the widget renders, the widget action queue, focus Live Activity attributes and content, the shared App Group location | — |
 | `LumenApplication` | Composition root, bootstrap and shutdown, built-in features registered as plugins (assistant tools, automation actions and triggers, search sources, sync handlers, commands), Home, reminders, widget snapshot, deep links | all engines |
 | `LumenPresentation` | `@Observable` view models for every screen, router, date labels | Application |
 | `LumenDesignSystem` | SwiftUI rendering of the tokens, components, motion, haptics | DesignTokens |
-| `LumenPlatform` | Apple adapters: EventKit calendar source (read and write), CloudKit record database (only for builds with an iCloud container), PDFKit text extraction, background refresh, Keychain and UserNotifications wiring, WidgetKit reloads, the shared services and runtime | Application |
+| `LumenPlatform` | Apple adapters: EventKit calendar source (read and write), CloudKit record database (only for builds with an iCloud container), PDFKit text extraction, ActivityKit focus Live Activity, CoreSpotlight index, background refresh, Keychain and UserNotifications wiring, WidgetKit reloads, the shared services and runtime | Application |
 | `LumenUI` | Screens, navigation, sheets, command palette | Presentation, DesignSystem, Platform |
 
 ## 3. Decisions
@@ -165,6 +165,17 @@ lifecycle (`PluginPackageManager` over `PluginHost`) without importing another e
 `LumenApplication` supplies the integration that validates templates with the automation engine,
 resolves deep links and removes owned entities on uninstall. Capabilities are granted one by one
 and a plugin activates once its required capabilities are granted.
+
+### D12 — Focus sessions are computed from timestamps
+
+A focus session stores its start, planned length and accumulated pauses; time remaining is always
+derived from those and the injected clock, never from a running timer. Sessions therefore survive
+relaunch, suspension and background refresh without drift, and every presentation — the Focus
+screen, the Live Activity (`Text(timerInterval:)` driven by the same dates), the end-of-session
+alert — agrees. `FocusCoordinator` (LumenApplication) keeps the Live Activity and the alert in
+step with storage through `FocusActivityPresenting`, serialising updates so an App Intent and an
+event can never interleave; ending a session is idempotent, so a Live Activity button racing the
+countdown is harmless.
 
 ## 4. Data flow
 
