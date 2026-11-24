@@ -33,4 +33,36 @@ public enum PluginPackageFile {
         guard data.count <= limit else { throw PluginPackageError.tooLarge(bytes: data.count, limit: limit) }
         return data
     }
+
+    // MARK: - Files handed over by other apps
+
+    /// The folder iOS copies a document into when another app hands it to Lumen ("Open in
+    /// Lumen"; Lumen doesn't open documents in place).
+    public static func inboxDirectory(documentsDirectory: URL) -> URL {
+        documentsDirectory.appendingPathComponent("Inbox", isDirectory: true)
+    }
+
+    /// Whether `url` is such a copy. Only these are Lumen's to delete: a file picked in the Files
+    /// app is the user's own and is never removed.
+    public static func isInboxCopy(_ url: URL, documentsDirectory: URL) -> Bool {
+        guard url.isFileURL else { return false }
+        let inbox = inboxDirectory(documentsDirectory: documentsDirectory).standardizedFileURL.resolvingSymlinksInPath().path
+        let file = url.standardizedFileURL.resolvingSymlinksInPath().path
+        return file.hasPrefix(inbox + "/")
+    }
+
+    /// Deletes `url` when it is an inbox copy; its bytes have been read by then. Returns whether a
+    /// file was removed.
+    @discardableResult
+    public static func removeInboxCopy(_ url: URL, documentsDirectory: URL, fileManager: FileManager = .default) -> Bool {
+        guard isInboxCopy(url, documentsDirectory: documentsDirectory) else { return false }
+        do {
+            try fileManager.removeItem(at: url)
+            return true
+        } catch {
+            // Best-effort cleanup: the package was read already; a copy that can't be removed only
+            // takes space in the app's own container.
+            return false
+        }
+    }
 }

@@ -32,10 +32,25 @@ public final class PluginRequestInbox {
     public var pending: PluginInstallRequest?
 
     private let readFile: @Sendable (URL) throws -> Data
+    private let discardHandedOverFile: @Sendable (URL) -> Void
 
-    /// - Parameter readFile: reads a package file (bounded); tests substitute it.
-    public init(readFile: @escaping @Sendable (URL) throws -> Data = { try PluginPackageFile.read($0) }) {
+    /// - Parameters:
+    ///   - readFile: reads a package file (bounded); tests substitute it.
+    ///   - discardHandedOverFile: removes the copy iOS made of a file another app handed over,
+    ///     once it has been read; tests substitute it.
+    public init(
+        readFile: @escaping @Sendable (URL) throws -> Data = { try PluginPackageFile.read($0) },
+        discardHandedOverFile: @escaping @Sendable (URL) -> Void = { PluginRequestInbox.removeInboxCopy($0) }
+    ) {
         self.readFile = readFile
+        self.discardHandedOverFile = discardHandedOverFile
+    }
+
+    /// Deletes `url` if it is the copy iOS placed in the app's `Documents/Inbox`; a file anywhere
+    /// else (picked in Files, opened in place) is left alone.
+    public nonisolated static func removeInboxCopy(_ url: URL) {
+        guard let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else { return }
+        PluginPackageFile.removeInboxCopy(url, documentsDirectory: documents)
     }
 
     /// Takes a URL the app was asked to open. Returns `true` when it was a plugin package file or
@@ -47,6 +62,10 @@ public final class PluginRequestInbox {
             } catch {
                 pending = .unreadable(ErrorPresentation.from(error))
             }
+            // The bytes are in memory now (or the file was unusable): iOS's copy isn't needed.
+            // Only the file just read is removed, so a second file handed over at the same
+            // moment is never deleted before it is read.
+            discardHandedOverFile(url)
             return true
         }
         if url.scheme?.lowercased() == PluginInstallLink.scheme, url.host?.lowercased() == PluginInstallLink.host {

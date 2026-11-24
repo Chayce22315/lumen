@@ -90,6 +90,32 @@ private func makePluginServices() async throws -> (LumenServices, LumenRuntime, 
 @MainActor
 @Suite("Plugin screens")
 struct PluginViewModelTests {
+    @Test("a file handed over by another app is discarded after reading; a file picked in Files is not")
+    func discardsHandedOverFiles() throws {
+        let discarded = Mutex<[URL]>([])
+        let inbox = PluginRequestInbox(
+            readFile: { _ in Data("bytes".utf8) },
+            discardHandedOverFile: { url in discarded.withLock { $0.append(url) } }
+        )
+        let handedOver = URL(fileURLWithPath: "/var/mobile/Documents/Inbox/weekly.lumenplugin")
+        #expect(inbox.accept(handedOver))
+        #expect(inbox.pending == .package(Data("bytes".utf8)))
+        #expect(discarded.withLock { $0 } == [handedOver])
+
+        // Unreadable files are discarded too: the review explains, the copy isn't needed.
+        let failing = PluginRequestInbox(
+            readFile: { _ in throw PluginPackageError.tooLarge(bytes: 600_000, limit: 524_288) },
+            discardHandedOverFile: { url in discarded.withLock { $0.append(url) } }
+        )
+        #expect(failing.accept(URL(fileURLWithPath: "/var/mobile/Documents/Inbox/big.lumenplugin")))
+        #expect(discarded.withLock { $0.count } == 2)
+
+        // Links and files picked in the Files app are never discarded.
+        #expect(inbox.accept(try #require(URL(string: "lumen://plugin/install?url=https://example.com/weekly.lumenplugin"))))
+        inbox.receiveFile(URL(fileURLWithPath: "/var/mobile/Documents/Plugins/weekly.lumenplugin"))
+        #expect(discarded.withLock { $0.count } == 2)
+    }
+
     @Test("opened files and install links wait in the inbox and open Settings › Plugins")
     func inbox() async throws {
         let inbox = PluginRequestInbox(readFile: { _ in Data("bytes".utf8) })
