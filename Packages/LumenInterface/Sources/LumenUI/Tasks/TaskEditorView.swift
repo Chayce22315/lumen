@@ -12,6 +12,7 @@ struct TaskEditorView: View {
     let model: AppModel
     @State private var editor: TaskEditorViewModel
     @State private var confirmDelete = false
+    @State private var isStartingFocus = false
     @Environment(\.dismiss) private var dismiss
 
     init(taskID: TaskItem.ID, services: LumenServices, model: AppModel) {
@@ -41,6 +42,11 @@ struct TaskEditorView: View {
             }
         }
         .task { await editor.load() }
+        .sheet(isPresented: $isStartingFocus) {
+            FocusSetupView(taskID: editor.taskID, services: services) { session in
+                model.router.open(.entity(session.reference))
+            }
+        }
         .confirmationDialog("Delete this task?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete task and subtasks", role: .destructive) {
                 Task { if await editor.delete() { dismiss() } }
@@ -68,6 +74,7 @@ struct TaskEditorView: View {
                 Section { Text(error.message).foregroundStyle(LumenColor.danger) }
             }
             scheduleSection
+            focusSection
             Section("Organize") {
                 Picker("Priority", selection: $editor.priority) {
                     ForEach(TaskPriority.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -125,6 +132,27 @@ struct TaskEditorView: View {
                 }
                 RecurrencePicker(rule: $editor.recurrence)
                 ReminderPicker(reminder: $editor.reminder)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var focusSection: some View {
+        let isOpen = editor.original?.isOpen ?? false
+        if isOpen || editor.focusSummary != nil {
+            Section("Focus") {
+                if isOpen {
+                    Button {
+                        isStartingFocus = true
+                    } label: {
+                        Label("Start a focus session", systemImage: "timer")
+                    }
+                }
+                if let summary = editor.focusSummary {
+                    Text(summary)
+                        .lumenText(.subheadline)
+                        .foregroundStyle(LumenColor.textSecondary)
+                }
             }
         }
     }

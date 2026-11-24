@@ -76,6 +76,14 @@ public enum LumenBootstrap {
         let agenda = AgendaService(tasks: tasks, calendars: calendars, timeSource: timeSource, calendar: calendar)
         let reminders = ReminderCoordinator(tasks: tasks, calendars: calendars, notifications: notifications, events: events, timeSource: timeSource, calendar: calendar, logger: logging.logger("reminders"))
         let organization = OrganizationServices(tasks: tasks, projects: projects, calendars: calendars, agenda: agenda, reminders: reminders)
+        let focusSessions = FocusService(database: database, events: events, timeSource: timeSource, tasks: tasks, logger: logging.logger("focus"))
+        let focus = FocusServices(
+            service: focusSessions,
+            coordinator: FocusCoordinator(
+                focus: focusSessions, tasks: tasks, notifications: notifications, presenter: platform.focusActivities,
+                events: events, timeSource: timeSource, logger: logging.logger("focus")
+            )
+        )
 
         // Knowledge
         let storage: any DocumentStorage
@@ -160,11 +168,15 @@ public enum LumenBootstrap {
         let signals = ProductivitySignals(
             completionEvents: [OrganizationEvent.taskCompleted],
             creationEvents: [OrganizationEvent.taskCreated],
+            focusEvents: [OrganizationEvent.focusCompleted],
             moduleDisplayNames: ["organization": "Tasks", "knowledge": "Notes", "intelligence": "Assistant", "automation": "Automations"],
             unit: WorkUnit(singular: "task", plural: "tasks")
         )
         let analytics = AnalyticsServices(
-            collector: AnalyticsCollector(database: database, events: events, settings: settings, timeSource: timeSource, calendar: calendar, logger: logging.logger("analytics")),
+            collector: AnalyticsCollector(
+                database: database, events: events, settings: settings, timeSource: timeSource, calendar: calendar,
+                logger: logging.logger("analytics"), measures: [FocusIntegration.minutesMeasure]
+            ),
             service: AnalyticsService(database: database, settings: settings, events: events, timeSource: timeSource, calendar: calendar, logger: logging.logger("analytics")),
             signals: signals
         )
@@ -218,6 +230,8 @@ public enum LumenBootstrap {
             ReadNoteTool(notes: notes),
             ListWorkflowsTool(automation: automationEngine),
             RunWorkflowTool(automation: automationEngine),
+            StartFocusTool(focus: focusSessions, tasks: tasks),
+            StopFocusTool(focus: focusSessions),
         ]
         try await host.register(IntelligenceFeature(tools: assistantTools, conversations: conversations), isBuiltIn: true)
         let automationActions: [any AutomationAction] = [
@@ -226,6 +240,8 @@ public enum LumenBootstrap {
             CreateNoteAction(notes: notes),
             AppendToNoteAction(notes: notes),
             SendNotificationAction(notifications: notifications),
+            StartFocusAction(focus: focusSessions),
+            StopFocusAction(focus: focusSessions),
         ]
         try await host.register(AutomationFeature(actions: automationActions, automation: automationEngine), isBuiltIn: true)
         for plugin in platform.plugins {
@@ -253,7 +269,12 @@ public enum LumenBootstrap {
             notifications: notifications, organization: organization, knowledge: knowledge,
             intelligence: intelligence, automation: automation, search: search, analytics: analytics, sync: sync,
             documentFiles: documentFiles,
-            plugins: PluginServices(host: host, extensions: extensions, packages: packages, templates: templates), commands: commandCenter, home: home, widgets: widgets
+            plugins: PluginServices(host: host, extensions: extensions, packages: packages, templates: templates), commands: commandCenter, home: home, widgets: widgets,
+            focus: focus,
+            spotlight: SystemSearchIndexer(
+                index: platform.systemSearchIndex, tasks: tasks, notes: notes, settings: settings, events: events,
+                calendar: calendar, logger: logging.logger("spotlight")
+            )
         )
         logger.info("Services created", metadata: ["flavor": configuration.flavor.rawValue])
         return services

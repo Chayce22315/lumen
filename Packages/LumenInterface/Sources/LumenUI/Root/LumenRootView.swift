@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(CoreSpotlight)
+import CoreSpotlight
+#endif
 import LumenFoundation
 import LumenCore
 import LumenDesignSystem
@@ -32,6 +35,7 @@ public struct LumenRootView: View {
         .tint(LumenColor.accent)
         .task { await model.launch() }
         .onOpenURL { model.handle(url: $0) }
+        .modifier(SpotlightContinuation(model: model))
         .onChange(of: scenePhase) { _, phase in
             Task {
                 switch phase {
@@ -65,6 +69,24 @@ public struct LumenRootView: View {
         .padding(.horizontal, LumenSpace.l)
         .animation(.lumenSmooth, value: model.banners.map(\.id))
         .animation(.lumenSmooth, value: model.toast)
+    }
+}
+
+/// Opening a Lumen result in Spotlight continues a `CSSearchableItemActionType` activity whose
+/// identifier is the item's `kind:UUID`; the app model routes it to the entity (after launch if
+/// it arrives during launch).
+private struct SpotlightContinuation: ViewModifier {
+    let model: AppModel
+
+    func body(content: Content) -> some View {
+        #if canImport(CoreSpotlight)
+        content.onContinueUserActivity(CSSearchableItemActionType) { activity in
+            guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
+            model.openSearchableItem(identifier: identifier)
+        }
+        #else
+        content
+        #endif
     }
 }
 

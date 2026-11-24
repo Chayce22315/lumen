@@ -14,18 +14,22 @@ struct HomeView: View {
     @State private var home: HomeViewModel
     @State private var scrollOffset: CGFloat = 0
     @State private var isEditing = false
+    @State private var activeFocus: ActiveFocusViewModel
+    @State private var isStartingFocus = false
 
     init(services: LumenServices, model: AppModel, zoom: Namespace.ID) {
         self.services = services
         self.model = model
         self.zoom = zoom
         _home = State(initialValue: HomeViewModel(services: services))
+        _activeFocus = State(initialValue: ActiveFocusViewModel(services: services))
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: LumenSpace.xl) {
                 header
+                ActiveFocusCard(active: activeFocus, model: model)
                 switch home.state {
                 case .idle, .loading:
                     SkeletonRows(count: 5).padding(.top, LumenSpace.l)
@@ -56,9 +60,15 @@ struct HomeView: View {
         .toolbar { toolbar }
         .navigationBarTitleDisplayMode(.inline)
         .task { await home.start() }
+        .task { await activeFocus.start() }
         .sheet(isPresented: $isEditing) {
             NavigationStack { LayoutEditorView(home: home) }
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $isStartingFocus) {
+            FocusSetupView(taskID: nil, services: services) { session in
+                model.router.open(.entity(session.reference))
+            }
         }
     }
 
@@ -103,6 +113,16 @@ struct HomeView: View {
                 Image(systemName: "gearshape")
             }
             .accessibilityLabel("Settings")
+            Button {
+                if let session = activeFocus.session {
+                    model.router.open(.entity(session.reference))
+                } else {
+                    isStartingFocus = true
+                }
+            } label: {
+                Image(systemName: "timer")
+            }
+            .accessibilityLabel(activeFocus.session == nil ? "Start focus" : "Open focus timer")
             Button {
                 model.router.open(.capture(text: nil))
             } label: {

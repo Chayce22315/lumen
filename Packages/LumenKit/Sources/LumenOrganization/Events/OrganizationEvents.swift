@@ -9,6 +9,8 @@ extension EntityKind {
     public static let calendar: EntityKind = "calendar"
     /// An event in the system calendar store (see `SystemCalendarEventReference`).
     public static let systemCalendarEvent: EntityKind = "system-calendar-event"
+    /// A focus session (device-local, never synchronized).
+    public static let focusSession: EntityKind = "focus-session"
 }
 
 /// Event names published by the organization engine. Persisted by analytics and referenced by
@@ -38,11 +40,23 @@ public enum OrganizationEvent {
     public static let systemEventSaved: EventName = "organization.systemEvent.saved"
     public static let systemEventDeleted: EventName = "organization.systemEvent.deleted"
 
+    /// Focus sessions. `completed` and `cancelled` carry `focusedMinutes` (fractional) and
+    /// `focusedSeconds`; every focus event carries `plannedMinutes`, and `taskID` when the session
+    /// is about a task.
+    public static let focusStarted: EventName = "organization.focus.started"
+    public static let focusPaused: EventName = "organization.focus.paused"
+    public static let focusResumed: EventName = "organization.focus.resumed"
+    public static let focusCompleted: EventName = "organization.focus.completed"
+    public static let focusCancelled: EventName = "organization.focus.cancelled"
+
+    public static let focusEvents: [EventName] = [focusStarted, focusPaused, focusResumed, focusCompleted, focusCancelled]
+
     public static let all: [EventName] = [
         taskCreated, taskUpdated, taskCompleted, taskReopened, taskCancelled, taskDeleted,
         projectCreated, projectUpdated, projectCompleted, projectDeleted,
         eventCreated, eventUpdated, eventDeleted,
         calendarCreated, calendarUpdated, calendarDeleted,
         systemEventSaved, systemEventDeleted,
+        focusStarted, focusPaused, focusResumed, focusCompleted, focusCancelled,
     ]
 }

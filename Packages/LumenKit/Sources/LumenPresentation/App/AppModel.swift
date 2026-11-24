@@ -29,6 +29,7 @@ public final class AppModel {
     private var runtime: LumenRuntime?
     private let issueObservation = ObservationHandle()
     private var pendingURL: URL?
+    private var pendingDestination: AppDestination?
 
     /// - Parameter makeRuntime: the runtime for the services. The app passes its process-wide
     ///   runtime, shared with background refresh, so engines are started once.
@@ -60,6 +61,10 @@ public final class AppModel {
                 pendingURL = nil
                 handle(url: url)
             }
+            if let destination = pendingDestination {
+                pendingDestination = nil
+                router.open(destination)
+            }
         } catch {
             phase = .failed(ErrorPresentation.from(error))
         }
@@ -86,6 +91,21 @@ public final class AppModel {
         if let destination = DeepLink.destination(from: url) {
             router.open(destination)
         }
+    }
+
+    /// Opens a system search (Spotlight) result: the identifier the system hands back is the
+    /// item's `kind:UUID`. Results that arrive during launch are opened once ready; identifiers
+    /// Lumen never indexed are ignored. Returns whether the identifier was understood.
+    @discardableResult
+    public func openSearchableItem(identifier: String) -> Bool {
+        guard let reference = SystemSearchItem.reference(fromIdentifier: identifier) else { return false }
+        let destination = AppDestination.entity(reference)
+        if services == nil {
+            pendingDestination = destination
+        } else {
+            router.open(destination)
+        }
+        return true
     }
 
     /// Runs a palette command by id.

@@ -57,7 +57,7 @@ public enum LivePlatform {
     }
 
     public static func services(for configuration: AppConfiguration) -> PlatformServices {
-        PlatformServices(
+        var platform = PlatformServices(
             secrets: KeychainSecretStore(service: configuration.keychainService),
             notificationScheduler: UserNotificationScheduler(),
             externalCalendar: calendarSource,
@@ -71,6 +71,11 @@ public enum LivePlatform {
                 #endif
             }
         )
+        platform.focusActivities = LiveActivityFocusPresenter()
+        if CoreSpotlightIndex.isSupported {
+            platform.systemSearchIndex = CoreSpotlightIndex()
+        }
+        return platform
     }
 
     /// The fully configured services for the running app.

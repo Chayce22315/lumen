@@ -33,6 +33,12 @@ public struct PlatformServices: Sendable {
     public var pluginSignatureVerifier: (any PluginSignatureVerifier)?
     /// Asks the system to reload widget timelines after a new snapshot was written.
     public var reloadWidgets: @Sendable () -> Void
+    /// Shows the focus session as a Live Activity (ActivityKit in the app). Set after `init`;
+    /// shows nothing by default.
+    public var focusActivities: any FocusActivityPresenting = InertFocusActivityPresenter()
+    /// The system search index (CoreSpotlight in the app) for tasks and notes. Set after `init`;
+    /// `nil` (tests, previews, UI testing) indexes nothing and hides the Spotlight setting.
+    public var systemSearchIndex: (any SystemSearchIndexing)?
 
     public init(
         secrets: any SecretStore,

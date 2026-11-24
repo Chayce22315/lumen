@@ -29,6 +29,8 @@ public final class InsightsViewModel {
     }
     public private(set) var state: LoadState<PeriodReport> = .idle
     public private(set) var isCollectionEnabled = true
+    /// Minutes of completed focus sessions in the period.
+    public private(set) var focusMinutes: Double = 0
 
     private let services: LumenServices
 
@@ -47,10 +49,18 @@ public final class InsightsViewModel {
         }
         do {
             isCollectionEnabled = await services.analytics.service.isCollectionEnabled()
+            focusMinutes = try await services.analytics.service.total(of: FocusIntegration.minutesMeasure.id, in: range)
             state = .loaded(try await services.analytics.service.report(signals: services.analytics.signals, range: range, today: today, insightLimit: 4))
         } catch {
             state = .failed(ErrorPresentation.from(error))
         }
+    }
+
+    /// "1 h 20 min", "45 min": the focus tile's value.
+    public var focusLabel: String {
+        let minutes = Int(focusMinutes.rounded())
+        guard minutes >= 60 else { return "\(minutes) min" }
+        return minutes % 60 == 0 ? "\(minutes / 60) h" : "\(minutes / 60) h \(minutes % 60) min"
     }
 
     /// The report as Markdown for sharing.

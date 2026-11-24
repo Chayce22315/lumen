@@ -7,6 +7,7 @@ import LumenSync
 public struct BackgroundRefreshReport: Sendable, Hashable {
     public enum Step: String, Sendable, Hashable, CaseIterable {
         case automations
+        case focus
         case widgetActions
         case sync
         case widgets
@@ -27,8 +28,9 @@ public struct BackgroundRefreshReport: Sendable, Hashable {
 }
 
 extension LumenRuntime {
-    /// The work of a background app refresh: due automations, tasks checked on the widget, a sync
-    /// pass, the widget snapshot, document uploads and document text backfill, cheapest and most visible first. Starts the runtime if the system launched
+    /// The work of a background app refresh: due automations, a focus session whose countdown ran
+    /// out, tasks checked on the widget, a sync pass, the widget snapshot, document uploads and
+    /// document text backfill, cheapest and most visible first. Starts the runtime if the system launched
     /// the app in the background. Stops between steps when the task is cancelled (the system's
     /// time is up) or `deadline` has passed.
     @discardableResult
@@ -47,6 +49,14 @@ extension LumenRuntime {
             report.completed.append(.automations)
         } else {
             report.skipped.append(.automations)
+        }
+        // A focus countdown that ran out while the app was closed completes (and ends its Live
+        // Activity) before the sync and widget steps.
+        if mayContinue() {
+            await services.focus.coordinator.reconcile()
+            report.completed.append(.focus)
+        } else {
+            report.skipped.append(.focus)
         }
         // Tasks checked on the widget while the app was closed are completed before syncing, so
         // the sync pass carries them. (A cold start already applied them in `start()`.)

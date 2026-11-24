@@ -42,6 +42,7 @@ struct SettingsView: View {
                 link(.assistant, "Assistant", "sparkles")
                 link(.notifications, "Notifications", "bell")
                 CalendarAccessRow()
+                SpotlightSettingsRow(services: services)
                 link(.sync, "Sync", "arrow.triangle.2.circlepath")
                 link(.plugins, "Plugins", "puzzlepiece.extension")
                 link(.privacy, "Privacy", "hand.raised")

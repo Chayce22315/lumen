@@ -75,6 +75,25 @@ public enum OrganizationSchema {
             CREATE INDEX organization_events_range ON organization_events (range_start, range_end);
             CREATE INDEX organization_events_calendar ON organization_events (calendar_id);
             """),
+        // Focus sessions are device-local: no change records, never synchronized. The partial
+        // unique index allows at most one session that has not ended.
+        .sql("0002_focus_sessions", """
+            CREATE TABLE organization_focus_sessions (
+                id TEXT PRIMARY KEY NOT NULL,
+                task_id TEXT,
+                planned_seconds REAL NOT NULL CHECK (planned_seconds > 0),
+                started_at REAL NOT NULL,
+                paused_at REAL,
+                paused_seconds REAL NOT NULL DEFAULT 0 CHECK (paused_seconds >= 0),
+                ended_at REAL,
+                outcome TEXT CHECK (outcome IN ('completed', 'cancelled')),
+                completes_task INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE UNIQUE INDEX organization_focus_sessions_one_active
+                ON organization_focus_sessions ((ended_at IS NULL)) WHERE ended_at IS NULL;
+            CREATE INDEX organization_focus_sessions_task ON organization_focus_sessions (task_id, started_at);
+            CREATE INDEX organization_focus_sessions_started ON organization_focus_sessions (started_at);
+            """),
     ])
 }
 
