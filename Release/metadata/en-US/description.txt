@@ -1,0 +1,30 @@
+Lumen is a calm, private workspace for everything you plan, write and automate.
+
+PLAN
+• Capture tasks in plain language: "Call Sam tomorrow at 5pm !high #family" understands the date, time, priority and tag.
+• Today, Upcoming, Overdue, Inbox and Anytime lists, projects with progress, subtasks, dependencies and repeating tasks.
+• A calendar with week and month views that works with your system calendars.
+• Reminders that respect quiet hours.
+
+WRITE
+• Markdown notes with wiki links, backlinks, tags and version history.
+• Import documents, preview them, and find the text inside PDFs.
+• Collections to keep everything in its place.
+
+FIND
+• Universal search across tasks, notes, documents and commands, with a command palette.
+
+AUTOMATE
+• Build automations visually: triggers, conditions, delays and actions, with a detailed history of every run.
+
+ASK
+• An assistant that can plan your day, find a note or create tasks for you — with your own Anthropic or OpenAI key, and your approval before it changes anything.
+
+UNDERSTAND
+• Insights about your work: streaks, completion trends and weekly reports, computed on your device.
+
+PRIVATE BY DESIGN
+• Your data stays on your device. No account, no tracking, no analytics leave the device.
+• API keys are stored only in the Keychain.
+
+Built for iPhone, with widgets, Shortcuts, Dynamic Type, VoiceOver and Reduce Motion support.

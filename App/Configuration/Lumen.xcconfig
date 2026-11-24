@@ -1,0 +1,27 @@
+// Build settings shared by every target (the project's base configuration).
+//
+// Don't put personal values here. Copy Signing.local.xcconfig.example to
+// Signing.local.xcconfig (ignored by git) and set your team and identifiers there; it is included
+// at the end of this file and overrides anything above.
+
+// The version shown in Settings, and to the App Store if Lumen is ever submitted.
+// Change it with scripts/set-version.sh.
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+
+// Signing. With no team, simulator builds sign locally and need no Apple account. To run on your
+// own iPhone, set your team: a free Apple ID's personal team works (see RELEASE.md).
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+
+// Identifiers. Bundle identifiers are unique across all of Apple, so with your own team use a
+// prefix you own, such as com.yourname.lumen. The App Group follows the prefix.
+LUMEN_BUNDLE_PREFIX = app.lumen
+LUMEN_APP_GROUP = group.$(LUMEN_BUNDLE_PREFIX)
+
+// Entitlements. Empty: the app and widget share data through the App Group. Set to -NoAppGroup
+// if your team can't provision App Groups; the app then keeps its data in its own container and
+// the widget shows "Open Lumen".
+LUMEN_ENTITLEMENTS_VARIANT =
+
+#include? "Signing.local.xcconfig"

@@ -1,0 +1,24 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+build/
+
+# SwiftPM
+.build/
+.build-linux/
+.swiftpm/
+Package.resolved.orig
+
+# macOS
+.DS_Store
+
+# Local secrets and environment overrides — never commit
+*.local.xcconfig
+Configuration/Secrets.xcconfig
+.env
+
+# Claude Code local state (agent worktrees, settings)
+.claude/

@@ -1,0 +1,11 @@
+// Copy to Signing.local.xcconfig (same folder). That file is ignored by git.
+
+// Your team: Xcode › Settings › Accounts › your Apple ID › the team's ID (10 characters).
+// A free Apple ID's personal team is enough to run Lumen on your own iPhone.
+DEVELOPMENT_TEAM = ABCDE12345
+
+// A bundle identifier prefix you own. Apple rejects identifiers another team registered first.
+LUMEN_BUNDLE_PREFIX = com.yourname.lumen
+
+// Uncomment if Xcode reports that your team can't use the App Groups capability.
+// LUMEN_ENTITLEMENTS_VARIANT = -NoAppGroup

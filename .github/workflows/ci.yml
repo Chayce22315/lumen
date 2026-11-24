@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: LumenKit (Linux, Swift ${{ matrix.swift }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        swift: ["6.1", "6.2"]
+    container: swift:${{ matrix.swift }}-noble
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install SQLite headers
+        run: apt-get update && apt-get install -y --no-install-recommends libsqlite3-dev
+      - name: Build and test
+        run: swift test --package-path Packages/LumenKit
+
+  apple:
+    name: LumenKit (macOS) + iOS app
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - name: Privacy manifest audit
+        run: scripts/audit-privacy-apis.sh
+      - name: LumenKit tests on macOS
+        run: swift test --package-path Packages/LumenKit
+      - name: Build app for iOS Simulator
+        if: hashFiles('Lumen.xcodeproj/project.pbxproj') != ''
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild \
+            -project Lumen.xcodeproj \
+            -scheme Lumen \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build > build/xcodebuild.log 2>&1 || true
+          if ! grep -q "BUILD SUCCEEDED" build/xcodebuild.log; then
+            echo "::group::Compiler errors"
+            grep -E "error:" build/xcodebuild.log | sort -u | head -200
+            echo "::endgroup::"
+            tail -40 build/xcodebuild.log
+            exit 1
+          fi
+          grep -E "warning: " build/xcodebuild.log | grep -v "/DerivedData/" | sort -u | head -100 || true
+          echo "BUILD SUCCEEDED"
+      - name: UI smoke tests and screenshots on iOS Simulator
+        if: hashFiles('Lumen.xcodeproj/project.pbxproj') != ''
+        run: scripts/ios-ui-tests.sh
+      - name: Export screenshots
+        run: scripts/export-screenshots.sh build/UITests.xcresult build/screenshots
+      - name: Keep the screenshots
+        uses: actions/upload-artifact@v6
+        with:
+          name: screenshots
+          path: build/screenshots
+          if-no-files-found: error
+      - name: Release build for devices (unsigned) and IPA
+        run: scripts/build-unsigned-ipa.sh
+      - name: Keep the unsigned IPA
+        uses: actions/upload-artifact@v6
+        with:
+          name: Lumen-unsigned-ipa
+          path: build/Lumen-unsigned.ipa
+          if-no-files-found: error
+      - name: Keep the UI test results
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ui-test-results
+          path: |
+            build/UITests.xcresult
+            build/ui-tests.log
+          if-no-files-found: ignore

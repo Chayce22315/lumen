@@ -1,0 +1,638 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		4C0000000000000000000080 /* LumenUI in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000060 /* LumenUI */; };
+		4C0000000000000000000081 /* LumenPlatform in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000061 /* LumenPlatform */; };
+		4C0000000000000000000082 /* LumenPresentation in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000062 /* LumenPresentation */; };
+		4C0000000000000000000083 /* LumenApplication in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000063 /* LumenApplication */; };
+		4C0000000000000000000084 /* LumenOrganization in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000064 /* LumenOrganization */; };
+		4C0000000000000000000085 /* LumenKnowledge in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000065 /* LumenKnowledge */; };
+		4C0000000000000000000086 /* LumenCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000066 /* LumenCore */; };
+		4C0000000000000000000087 /* LumenFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000067 /* LumenFoundation */; };
+		4C0000000000000000000088 /* LumenWidgetData in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000068 /* LumenWidgetData */; };
+		4C0000000000000000000089 /* LumenDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 4C0000000000000000000069 /* LumenDesignSystem */; };
+		4C0000000000000000000040 /* LumenWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4C0000000000000000000011 /* LumenWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4C0000000000000000000042 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4C0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C0000000000000000000021;
+			remoteInfo = LumenWidgetsExtension;
+		};
+		4C0000000000000000000044 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4C0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4C0000000000000000000020;
+			remoteInfo = Lumen;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4C0000000000000000000033 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4C0000000000000000000040 /* LumenWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		4C0000000000000000000010 /* Lumen.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lumen.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C0000000000000000000011 /* LumenWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LumenWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C0000000000000000000012 /* LumenUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LumenUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C0000000000000000000014 /* Lumen.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Lumen.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4C0000000000000000000004 /* Lumen */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = Lumen;
+			path = App/Lumen;
+			sourceTree = "<group>";
+		};
+		4C0000000000000000000005 /* LumenWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = LumenWidgets;
+			path = App/LumenWidgets;
+			sourceTree = "<group>";
+		};
+		4C0000000000000000000006 /* LumenUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			name = LumenUITests;
+			path = App/LumenUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4C0000000000000000000031 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C0000000000000000000080 /* LumenUI in Frameworks */,
+				4C0000000000000000000081 /* LumenPlatform in Frameworks */,
+				4C0000000000000000000082 /* LumenPresentation in Frameworks */,
+				4C0000000000000000000083 /* LumenApplication in Frameworks */,
+				4C0000000000000000000084 /* LumenOrganization in Frameworks */,
+				4C0000000000000000000085 /* LumenKnowledge in Frameworks */,
+				4C0000000000000000000086 /* LumenCore in Frameworks */,
+				4C0000000000000000000087 /* LumenFoundation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C0000000000000000000035 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C0000000000000000000088 /* LumenWidgetData in Frameworks */,
+				4C0000000000000000000089 /* LumenDesignSystem in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C0000000000000000000038 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		4C0000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				4C0000000000000000000004 /* Lumen */,
+				4C0000000000000000000005 /* LumenWidgets */,
+				4C0000000000000000000006 /* LumenUITests */,
+				4C0000000000000000000007 /* Configuration */,
+				4C0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4C0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4C0000000000000000000010 /* Lumen.app */,
+				4C0000000000000000000011 /* LumenWidgetsExtension.appex */,
+				4C0000000000000000000012 /* LumenUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4C0000000000000000000007 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				4C0000000000000000000014 /* Lumen.xcconfig */,
+			);
+			name = Configuration;
+			path = App/Configuration;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		4C0000000000000000000020 /* Lumen */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C00000000000000000000A1 /* Build configuration list for PBXNativeTarget "Lumen" */;
+			buildPhases = (
+				4C0000000000000000000030 /* Sources */,
+				4C0000000000000000000031 /* Frameworks */,
+				4C0000000000000000000032 /* Resources */,
+				4C0000000000000000000033 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C0000000000000000000041 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4C0000000000000000000004 /* Lumen */,
+			);
+			name = Lumen;
+			packageProductDependencies = (
+				4C0000000000000000000060 /* LumenUI */,
+				4C0000000000000000000061 /* LumenPlatform */,
+				4C0000000000000000000062 /* LumenPresentation */,
+				4C0000000000000000000063 /* LumenApplication */,
+				4C0000000000000000000064 /* LumenOrganization */,
+				4C0000000000000000000065 /* LumenKnowledge */,
+				4C0000000000000000000066 /* LumenCore */,
+				4C0000000000000000000067 /* LumenFoundation */,
+			);
+			productName = Lumen;
+			productReference = 4C0000000000000000000010 /* Lumen.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4C0000000000000000000021 /* LumenWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C00000000000000000000A2 /* Build configuration list for PBXNativeTarget "LumenWidgetsExtension" */;
+			buildPhases = (
+				4C0000000000000000000034 /* Sources */,
+				4C0000000000000000000035 /* Frameworks */,
+				4C0000000000000000000036 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4C0000000000000000000005 /* LumenWidgets */,
+			);
+			name = LumenWidgetsExtension;
+			packageProductDependencies = (
+				4C0000000000000000000068 /* LumenWidgetData */,
+				4C0000000000000000000069 /* LumenDesignSystem */,
+			);
+			productName = LumenWidgetsExtension;
+			productReference = 4C0000000000000000000011 /* LumenWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		4C0000000000000000000022 /* LumenUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4C00000000000000000000A3 /* Build configuration list for PBXNativeTarget "LumenUITests" */;
+			buildPhases = (
+				4C0000000000000000000037 /* Sources */,
+				4C0000000000000000000038 /* Frameworks */,
+				4C0000000000000000000039 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4C0000000000000000000043 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4C0000000000000000000006 /* LumenUITests */,
+			);
+			name = LumenUITests;
+			packageProductDependencies = (
+			);
+			productName = LumenUITests;
+			productReference = 4C0000000000000000000012 /* LumenUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		4C0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					4C0000000000000000000020 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					4C0000000000000000000021 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					4C0000000000000000000022 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 4C0000000000000000000020;
+					};
+				};
+			};
+			buildConfigurationList = 4C00000000000000000000A0 /* Build configuration list for PBXProject "Lumen" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 4C0000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */,
+				4C0000000000000000000051 /* XCLocalSwiftPackageReference "Packages/LumenInterface" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4C0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				4C0000000000000000000020 /* Lumen */,
+				4C0000000000000000000021 /* LumenWidgetsExtension */,
+				4C0000000000000000000022 /* LumenUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4C0000000000000000000032 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C0000000000000000000036 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C0000000000000000000039 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4C0000000000000000000030 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C0000000000000000000034 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4C0000000000000000000037 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4C0000000000000000000041 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C0000000000000000000021 /* LumenWidgetsExtension */;
+			targetProxy = 4C0000000000000000000042 /* PBXContainerItemProxy */;
+		};
+		4C0000000000000000000043 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4C0000000000000000000020 /* Lumen */;
+			targetProxy = 4C0000000000000000000044 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4C00000000000000000000B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4C0000000000000000000014 /* Lumen.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		4C00000000000000000000B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 4C0000000000000000000014 /* Lumen.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 6.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		4C00000000000000000000B2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/Lumen$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Configuration/Lumen-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lumen;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4C00000000000000000000B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/Lumen$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Configuration/Lumen-Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lumen;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4C00000000000000000000B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/LumenWidgets$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "App/Configuration/LumenWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Lumen;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen.Widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4C00000000000000000000B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "App/Configuration/LumenWidgets$(LUMEN_ENTITLEMENTS_VARIANT).entitlements";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "App/Configuration/LumenWidgets-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Lumen;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).Lumen.Widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		4C00000000000000000000B6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).LumenUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Lumen;
+			};
+			name = Debug;
+		};
+		4C00000000000000000000B7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(LUMEN_BUNDLE_PREFIX).LumenUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Lumen;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		4C00000000000000000000A0 /* Build configuration list for PBXProject "Lumen" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00000000000000000000B0 /* Debug */,
+				4C00000000000000000000B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C00000000000000000000A1 /* Build configuration list for PBXNativeTarget "Lumen" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00000000000000000000B2 /* Debug */,
+				4C00000000000000000000B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C00000000000000000000A2 /* Build configuration list for PBXNativeTarget "LumenWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00000000000000000000B4 /* Debug */,
+				4C00000000000000000000B5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4C00000000000000000000A3 /* Build configuration list for PBXNativeTarget "LumenUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4C00000000000000000000B6 /* Debug */,
+				4C00000000000000000000B7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/LumenKit;
+		};
+		4C0000000000000000000051 /* XCLocalSwiftPackageReference "Packages/LumenInterface" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/LumenInterface;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4C0000000000000000000060 /* LumenUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000051 /* XCLocalSwiftPackageReference "Packages/LumenInterface" */;
+			productName = LumenUI;
+		};
+		4C0000000000000000000061 /* LumenPlatform */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000051 /* XCLocalSwiftPackageReference "Packages/LumenInterface" */;
+			productName = LumenPlatform;
+		};
+		4C0000000000000000000062 /* LumenPresentation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */;
+			productName = LumenPresentation;
+		};
+		4C0000000000000000000063 /* LumenApplication */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */;
+			productName = LumenApplication;
+		};
+		4C0000000000000000000064 /* LumenOrganization */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */;
+			productName = LumenOrganization;
+		};
+		4C0000000000000000000065 /* LumenKnowledge */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */;
+			productName = LumenKnowledge;
+		};
+		4C0000000000000000000066 /* LumenCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */;
+			productName = LumenCore;
+		};
+		4C0000000000000000000067 /* LumenFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */;
+			productName = LumenFoundation;
+		};
+		4C0000000000000000000068 /* LumenWidgetData */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000050 /* XCLocalSwiftPackageReference "Packages/LumenKit" */;
+			productName = LumenWidgetData;
+		};
+		4C0000000000000000000069 /* LumenDesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4C0000000000000000000051 /* XCLocalSwiftPackageReference "Packages/LumenInterface" */;
+			productName = LumenDesignSystem;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 4C0000000000000000000001 /* Project object */;
+}
